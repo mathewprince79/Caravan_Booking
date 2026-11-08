@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "caravan_booking",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "database_id": "4e7edc7c-e69c-4023-8686-e94dd60a2c41",
       "migrations_dir": "migrations"
     }
   ],
