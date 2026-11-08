@@ -176,3 +176,4 @@ Workers dashboard → your Worker → Settings → Domains & Routes → Add cust
 - Uploads are capped at 25 MB (12 MB for item photos) and stored in R2, served only to signed-in members.
 - Sessions are httpOnly cookies valid for 30 days; deleting a user does not delete their bookings, so delete or reassign those first.
 - The PWA caches the app shell only; calendars and bookings always come from the network.
+# Caravan_Booking
