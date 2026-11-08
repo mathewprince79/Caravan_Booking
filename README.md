@@ -145,7 +145,7 @@ Without a key, the app still records what it *would* send and shows it in the Wo
 
 If you connected the repository in the Cloudflare dashboard instead of using GitHub Actions, set:
 
-- **Build command:** `npm run build`
+- **Build command:** `npm run build` (if the dashboard only offers `None`, leave it — the `postinstall` script builds `dist/` during `npm clean-install`)
 - **Deploy command:** `npx wrangler deploy` — or `npm run cf:deploy` to build, apply D1 migrations and deploy in one step
 - **Root directory:** `/`
 
