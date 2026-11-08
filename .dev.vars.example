@@ -1,0 +1,15 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# These are only for `wrangler dev`; production values go in GitHub/Cloudflare secrets.
+
+# Google sign-in (https://console.cloud.google.com/apis/credentials)
+# Authorised redirect URI: http://localhost:8787/api/auth/google/callback
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Transactional email via Resend (https://resend.com). Optional in local dev:
+# without it, reminder emails are logged instead of sent.
+RESEND_API_KEY=
+EMAIL_FROM="Caravan Club <bookings@yourdomain.com>"
+
+# Comma separated emails that are auto-approved as admins on signup.
+ADMIN_EMAILS=

@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "caravan-booking",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-10-01",
+  "observability": { "enabled": true },
+
+  // Static SPA from `npm run build`; only /api/* is routed to the Worker first.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Create with: wrangler d1 create caravan_booking
+  // then paste the returned id below.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "caravan_booking",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Create with: wrangler r2 bucket create caravan-booking-media
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "caravan-booking-media"
+    }
+  ],
+
+  // Daily reminder sweep: condition reports + parking address prompts.
+  "triggers": {
+    "crons": ["0 7 * * *"]
+  },
+
+  "vars": {
+    "APP_NAME": "Caravan Club",
+    "DEFAULT_TIMEZONE": "UTC",
+    // Set this to your deployed URL (e.g. https://caravan-booking.you.workers.dev)
+    // so reminder emails can link straight back to the app.
+    "APP_URL": ""
+  }
+}
