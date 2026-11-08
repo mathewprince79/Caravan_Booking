@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.worker.json --noEmit",
     "preview": "npm run build && wrangler dev --port 8787",
     "deploy": "npm run typecheck && npm run build && wrangler deploy",
+    "cf:deploy": "npm run build && wrangler d1 migrations apply caravan_booking --remote && wrangler deploy",
     "db:local": "wrangler d1 migrations apply caravan_booking --local",
     "db:remote": "wrangler d1 migrations apply caravan_booking --remote",
     "icons": "node scripts/make-icons.mjs"

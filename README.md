@@ -141,6 +141,19 @@ The button only appears when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` 
 
 Without a key, the app still records what it *would* send and shows it in the Worker logs — nothing breaks.
 
+### Cloudflare Workers Builds (git-connected, no extra secrets)
+
+If you connected the repository in the Cloudflare dashboard instead of using GitHub Actions, set:
+
+- **Build command:** `npm run build`
+- **Deploy command:** `npx wrangler deploy` — or `npm run cf:deploy` to build, apply D1 migrations and deploy in one step
+- **Root directory:** `/`
+
+`dist/` is intentionally gitignored, so with no build command the deploy fails with
+`The directory specified by the "assets.directory" field ... does not exist: /opt/buildhome/repo/dist`.
+Set `database_id` in `wrangler.jsonc` before the first build, and add the runtime secrets under the
+Worker's **Settings → Variables and Secrets**.
+
 ### Automatic deploys from GitHub
 
 Push the repo to GitHub, then in the repository settings add two secrets:
