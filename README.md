@@ -2,7 +2,7 @@
 
 A progressive web app where members book shared items by the day. Admins approve members, grant per-item access, set booking frequency limits, manage bookings and items, and can book on anyone's behalf — including themselves. Google and email/password sign-in, phone number captured after signup, condition report photos/videos at pickup and return, parking address capture, and daily reminder emails.
 
-Built to run entirely on free tiers: **Cloudflare Workers + D1 + R2**, deployed from **GitHub Actions**.
+Built to run entirely on free tiers: **Cloudflare Workers + D1 + Workers KV**, deployed from **GitHub Actions**.
 
 ---
 
@@ -38,7 +38,7 @@ Built to run entirely on free tiers: **Cloudflare Workers + D1 + R2**, deployed 
 | --- | --- |
 | Cloudflare Workers | 100k requests/day |
 | Cloudflare D1 | 5 GB storage, 5M row reads/day |
-| Cloudflare R2 | 10 GB storage, free egress |
+| Cloudflare Workers KV | 1 GB storage, 25 MB per file, 1k writes/day |
 | Resend email | 3,000 emails/month, 100/day |
 | GitHub Actions | 2,000 minutes/month |
 
@@ -48,7 +48,7 @@ No paid plan is required. Password hashing is tuned (PBKDF2, 12k iterations) to 
 
 ## What you need to supply
 
-1. A **Cloudflare account** (free) — hosting, D1, R2.
+1. A **Cloudflare account** (free) — hosting, D1, KV. No payment method is needed.
 2. A **domain you control, added to Cloudflare** (free) — needed only for real outbound email, because Resend must verify a sender domain. Without it the app runs fine and emails are logged instead of sent.
 3. A **Google Cloud OAuth client** (free) — optional; only for "Continue with Google".
 4. A **Resend account** (free) — for the reminder emails.
@@ -98,9 +98,9 @@ npx wrangler login
 
 # 1. Create the resources
 npx wrangler d1 create caravan_booking
-npx wrangler r2 bucket create caravan-booking-media
+npx wrangler kv namespace create MEDIA
 
-# 2. Paste the database_id printed above into wrangler.jsonc
+# 2. Paste the database_id and KV namespace id printed above into wrangler.jsonc
 #    (it replaces REPLACE_WITH_YOUR_D1_DATABASE_ID)
 
 # 3. Create the schema on the real database
@@ -158,7 +158,7 @@ Worker's **Settings → Variables and Secrets**.
 
 Push the repo to GitHub, then in the repository settings add two secrets:
 
-- `CLOUDFLARE_API_TOKEN` — a token with the *Edit Cloudflare Workers* + *D1* + *R2* permissions
+- `CLOUDFLARE_API_TOKEN` — a token with the *Edit Cloudflare Workers* + *D1* permissions
 - `CLOUDFLARE_ACCOUNT_ID` — from the Cloudflare dashboard
 
 `.github/workflows/deploy.yml` typechecks, builds, applies D1 migrations and deploys on every push to `main`.
@@ -186,7 +186,7 @@ Workers dashboard → your Worker → Settings → Domains & Routes → Add cust
 ## Notes and limits
 
 - Dates are calendar days; "today" is decided by the timezone in Admin → Settings (default `UTC` — set it to `Australia/Sydney`, `Europe/London`, etc.).
-- Uploads are capped at 25 MB (12 MB for item photos) and stored in R2, served only to signed-in members.
+- Uploads are capped at 25 MB (12 MB for item photos) and stored in Workers KV, served only to signed-in members. KV is eventually consistent, so a just-uploaded photo can take a minute to appear on other devices.
 - Sessions are httpOnly cookies valid for 30 days; deleting a user does not delete their bookings, so delete or reassign those first.
 - The PWA caches the app shell only; calendars and bookings always come from the network.
 # Caravan_Booking

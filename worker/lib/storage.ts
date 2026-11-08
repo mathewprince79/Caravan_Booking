@@ -19,6 +19,6 @@ export async function storeUpload(
   if (file.size === 0) throw new Error('That file is empty.');
 
   const key = `${prefix}/${uid()}.${mediaExtension(file.name, type)}`;
-  await env.MEDIA.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: type } });
+  await env.MEDIA.put(key, await file.arrayBuffer(), { metadata: { contentType: type } });
   return { key, type };
 }

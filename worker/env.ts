@@ -2,7 +2,7 @@ import type { User } from '../shared/types';
 
 export interface Env {
   DB: D1Database;
-  MEDIA: R2Bucket;
+  MEDIA: KVNamespace;
   ASSETS: Fetcher;
   APP_NAME?: string;
   APP_URL?: string;

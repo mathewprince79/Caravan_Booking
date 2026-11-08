@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Shared item booking PWA (caravans, trailers) on Cloudflare Workers, D1 and R2",
+  "description": "Shared item booking PWA (caravans, trailers) on Cloudflare Workers, D1 and KV",
   "scripts": {
     "dev": "npm run build && wrangler dev --port 8787",
     "build": "vite build",

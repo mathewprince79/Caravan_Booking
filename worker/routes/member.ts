@@ -315,12 +315,14 @@ memberRoutes.post('/bookings/:id/address', requireActive, async (c) => {
 memberRoutes.get('/media/*', requireActive, async (c) => {
   const key = decodeURIComponent(c.req.path.replace(/^\/api\/media\//, ''));
   if (!key) return c.json({ error: 'Not found' }, 404);
-  const object = await c.env.MEDIA.get(key);
-  if (!object) return c.json({ error: 'Not found' }, 404);
+  const stored = await c.env.MEDIA.getWithMetadata<{ contentType?: string }>(key, 'arrayBuffer', {
+    cacheTtl: 3600,
+  });
+  if (!stored.value) return c.json({ error: 'Not found' }, 404);
 
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('etag', object.httpEtag);
+  headers.set('Content-Type', stored.metadata?.contentType ?? 'application/octet-stream');
+  headers.set('Content-Length', String(stored.value.byteLength));
   headers.set('Cache-Control', 'private, max-age=3600');
-  return new Response(object.body as unknown as ReadableStream, { headers });
+  return new Response(stored.value, { headers });
 });

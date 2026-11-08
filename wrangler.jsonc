@@ -24,11 +24,12 @@
     }
   ],
 
-  // Create with: wrangler r2 bucket create caravan-booking-media
-  "r2_buckets": [
+  // Media lives in Workers KV: card-free on the free plan (1 GB total, 25 MB per
+  // file, 1k writes/day). Create with: wrangler kv namespace create MEDIA
+  "kv_namespaces": [
     {
       "binding": "MEDIA",
-      "bucket_name": "caravan-booking-media"
+      "id": "7e574bdaf2694deebd2c02d7914b50d7"
     }
   ],
 
