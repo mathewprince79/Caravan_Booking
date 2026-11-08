@@ -315,9 +315,7 @@ memberRoutes.post('/bookings/:id/address', requireActive, async (c) => {
 memberRoutes.get('/media/*', requireActive, async (c) => {
   const key = decodeURIComponent(c.req.path.replace(/^\/api\/media\//, ''));
   if (!key) return c.json({ error: 'Not found' }, 404);
-  const stored = await c.env.MEDIA.getWithMetadata<{ contentType?: string }>(key, 'arrayBuffer', {
-    cacheTtl: 3600,
-  });
+  const stored = await c.env.MEDIA.getWithMetadata<{ contentType?: string }>(key, 'arrayBuffer');
   if (!stored.value) return c.json({ error: 'Not found' }, 404);
 
   const headers = new Headers();
