@@ -4,7 +4,7 @@ import { useState } from 'react';
 const LOGO_SRC = '/brand-logo.png?v=1';
 
 /**
- * Uses public/logo.png when it is present. Until that file is added the vector
+ * Uses public/brand-logo.png. If that image cannot be decoded the vector
  * recreation below keeps the brand on screen instead of a broken image.
  */
 export default function BrandLogo({ compact = false }: { compact?: boolean }) {
