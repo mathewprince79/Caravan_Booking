@@ -33,16 +33,8 @@ export default function Layout() {
     <div className="app-shell">
       <header className="app-header">
         <div className="header-inner">
-          <Link to="/" className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M3 15h18M5 15V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6" strokeLinecap="round" />
-                <circle cx="7.5" cy="17.5" r="1.7" />
-                <circle cx="16.5" cy="17.5" r="1.7" />
-                <path d="M9 11h6" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="brand-text">{config?.orgName ?? 'BookToUse Club'}</span>
+          <Link to="/" className="brand" aria-label={config?.orgName ?? 'BookToUse Club'}>
+            <BrandLogo compact />
           </Link>
 
           <nav className="main-nav" aria-label="Main">
