@@ -10,6 +10,7 @@ export const SETTING_KEYS = {
   periodDays: 'default_period_days',
   minGapDays: 'default_min_gap_days',
   advanceDays: 'default_advance_days',
+  yearlyMaxDays: 'yearly_max_days',
   requireApproval: 'require_approval',
 } as const;
 
@@ -26,6 +27,7 @@ export async function loadSettings(env: Env): Promise<Settings> {
     periodDays: clampInt(read(SETTING_KEYS.periodDays), 30, 1, 3650),
     minGapDays: clampInt(read(SETTING_KEYS.minGapDays), 3, 0, 365),
     advanceDays: clampInt(read(SETTING_KEYS.advanceDays), 90, 1, 730),
+    yearlyMaxDays: clampInt(read(SETTING_KEYS.yearlyMaxDays), 36, 1, 365),
     requireApproval: read(SETTING_KEYS.requireApproval) !== '0',
   };
 }
@@ -43,6 +45,8 @@ export async function saveSettings(env: Env, patch: Partial<Settings>): Promise<
     periodDays: patch.periodDays === undefined ? current.periodDays : clampInt(patch.periodDays, current.periodDays, 1, 3650),
     minGapDays: patch.minGapDays === undefined ? current.minGapDays : clampInt(patch.minGapDays, current.minGapDays, 0, 365),
     advanceDays: patch.advanceDays === undefined ? current.advanceDays : clampInt(patch.advanceDays, current.advanceDays, 1, 730),
+    yearlyMaxDays:
+      patch.yearlyMaxDays === undefined ? current.yearlyMaxDays : clampInt(patch.yearlyMaxDays, current.yearlyMaxDays, 1, 365),
     requireApproval: patch.requireApproval === undefined ? current.requireApproval : Boolean(patch.requireApproval),
   };
 
@@ -54,6 +58,7 @@ export async function saveSettings(env: Env, patch: Partial<Settings>): Promise<
     env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(SETTING_KEYS.periodDays, String(next.periodDays)),
     env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(SETTING_KEYS.minGapDays, String(next.minGapDays)),
     env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(SETTING_KEYS.advanceDays, String(next.advanceDays)),
+    env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(SETTING_KEYS.yearlyMaxDays, String(next.yearlyMaxDays)),
     env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(SETTING_KEYS.requireApproval, next.requireApproval ? '1' : '0'),
   ];
   await env.DB.batch(statements);

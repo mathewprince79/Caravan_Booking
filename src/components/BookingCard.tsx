@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Booking } from '../../shared/types';
 import { daysInclusive, formatDate, formatRange } from '../../shared/dates';
 import { api, errorMessage } from '../lib/api';
@@ -8,9 +8,15 @@ interface Props {
   booking: Booking;
   onChanged: () => void;
   showItem?: boolean;
+  autoOpenReport?: 'start' | 'end';
 }
 
-export default function BookingCard({ booking, onChanged, showItem = false }: Props) {
+export default function BookingCard({ booking, onChanged, showItem = false, autoOpenReport }: Props) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (autoOpenReport) sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [autoOpenReport]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -79,7 +85,7 @@ export default function BookingCard({ booking, onChanged, showItem = false }: Pr
   }
 
   return (
-    <section className="booking-card">
+    <section className="booking-card" ref={sectionRef}>
       <div className="booking-card-head">
         <div>
           {showItem ? <h3>{booking.itemName}</h3> : null}
@@ -102,6 +108,7 @@ export default function BookingCard({ booking, onChanged, showItem = false }: Pr
             due={booking.actions.needsStartReport}
             hint={`Photo or video of ${booking.itemName} before use`}
             busy={busy === 'start'}
+            defaultOpen={autoOpenReport === 'start'}
             onSubmit={(form) => uploadReport('start', form)}
           />
 
@@ -111,6 +118,7 @@ export default function BookingCard({ booking, onChanged, showItem = false }: Pr
             due={booking.actions.needsEndReport}
             hint={`Photo or video showing how ${booking.itemName} was returned`}
             busy={busy === 'end'}
+            defaultOpen={autoOpenReport === 'end'}
             onSubmit={(form) => uploadReport('end', form)}
           />
 
@@ -164,6 +172,24 @@ export default function BookingCard({ booking, onChanged, showItem = false }: Pr
             </div>
           ) : null}
         </>
+      ) : booking.status === 'pending' ? (
+        <>
+          <p className="small muted">
+            Waiting for an admin to approve this booking. You will get a confirmation email as soon as it is approved.
+          </p>
+          {booking.actions.canCancel ? (
+            <div>
+              <button
+                type="button"
+                className="button button-danger button-small"
+                onClick={cancelBooking}
+                disabled={busy === 'cancel'}
+              >
+                {busy === 'cancel' ? 'Withdrawing…' : 'Withdraw request'}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : (
         <p className="small muted">Cancelled on {formatDate(booking.startDate, 'medium')}.</p>
       )}
@@ -177,6 +203,7 @@ function ReportSlot({
   due,
   hint,
   busy,
+  defaultOpen = false,
   onSubmit,
 }: {
   title: string;
@@ -184,9 +211,10 @@ function ReportSlot({
   due: boolean;
   hint: string;
   busy: boolean;
+  defaultOpen?: boolean;
   onSubmit: (form: HTMLFormElement) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div className={`report-slot${done ? ' done' : due ? ' late' : ''}`}>

@@ -14,6 +14,7 @@ import AdminItems from './pages/admin/AdminItems';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminReports from './pages/admin/AdminReports';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminPeak from './pages/admin/AdminPeak';
 
 function ProtectedApp() {
   const { me, loading } = useAuth();
@@ -45,6 +46,7 @@ export default function App() {
               <Route path="items" element={<AdminItems />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="peak" element={<AdminPeak />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
             <Route path="*" element={<NotFound />} />

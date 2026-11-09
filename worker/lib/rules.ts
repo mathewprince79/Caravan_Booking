@@ -42,10 +42,20 @@ export async function validateBooking(env: Env, input: BookingValidationInput): 
     return `Bookings open at most ${limits.advanceDays} days ahead.`;
   }
 
+  // A peak period can cap a booking more tightly than the item default.
+  const peaks = await peakPeriodsOverlapping(env, start, end);
+  if (peaks.length > 0) {
+    const peak = peaks[0];
+    const cap = Number(peak.max_days);
+    if (span > cap) {
+      return `${item.name} can be booked for at most ${cap} day${cap === 1 ? '' : 's'} during ${peak.name}.`;
+    }
+  }
+
   const conflict = await env.DB.prepare(
     `SELECT b.id, b.start_date, b.end_date, u.name AS user_name
      FROM bookings b JOIN users u ON u.id = b.user_id
-     WHERE b.item_id = ? AND b.status = 'confirmed' AND b.start_date <= ? AND b.end_date >= ?
+     WHERE b.item_id = ? AND b.status IN ('confirmed', 'pending') AND b.start_date <= ? AND b.end_date >= ?
      LIMIT 1`,
   )
     .bind(item.id, end, start)
@@ -62,7 +72,7 @@ export async function validateBooking(env: Env, input: BookingValidationInput): 
   const windowStart = addDays(start, -(limits.periodDays - 1));
   const recent = await env.DB.prepare(
     `SELECT COUNT(*) AS n FROM bookings
-     WHERE user_id = ? AND status = 'confirmed' AND start_date >= ? AND start_date <= ?`,
+     WHERE user_id = ? AND status IN ('confirmed', 'pending') AND start_date >= ? AND start_date <= ?`,
   )
     .bind(userId, windowStart, start)
     .first<any>();
@@ -75,7 +85,7 @@ export async function validateBooking(env: Env, input: BookingValidationInput): 
     // required gap, touches the requested range means the gap is not met.
     const near = await env.DB.prepare(
       `SELECT start_date, end_date FROM bookings
-       WHERE user_id = ? AND item_id = ? AND status = 'confirmed'
+       WHERE user_id = ? AND item_id = ? AND status IN ('confirmed', 'pending')
          AND start_date <= ? AND end_date >= ?
        ORDER BY start_date LIMIT 1`,
     )
@@ -100,6 +110,78 @@ export async function validateBooking(env: Env, input: BookingValidationInput): 
   }
 
   return null;
+}
+
+/** Peak periods a date range touches, most restrictive first. */
+export async function peakPeriodsOverlapping(env: Env, start: string, end: string) {
+  const rows = await env.DB.prepare(
+    'SELECT * FROM peak_periods WHERE start_date <= ? AND end_date >= ? ORDER BY max_days ASC, start_date ASC',
+  )
+    .bind(end, start)
+    .all<any>();
+  return rows.results;
+}
+
+/**
+ * Reasons a member booking needs an admin decision. An empty list means the
+ * booking can be confirmed straight away. Admins never need approval.
+ */
+export async function evaluateApproval(
+  env: Env,
+  input: { userId: string; start: string; end: string; settings: Settings },
+): Promise<string[]> {
+  const { userId, start, end, settings } = input;
+  const reasons: string[] = [];
+  const year = start.slice(0, 4);
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+
+  // A second peak-period booking in the same calendar year needs approval.
+  const peaks = await peakPeriodsOverlapping(env, start, end);
+  if (peaks.length > 0) {
+    const prior = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM bookings b
+       WHERE b.user_id = ? AND b.status IN ('confirmed', 'pending')
+         AND b.start_date <= ? AND b.end_date >= ?
+         AND EXISTS (
+           SELECT 1 FROM peak_periods p
+           WHERE b.start_date <= p.end_date AND b.end_date >= p.start_date
+         )`,
+    )
+      .bind(userId, yearEnd, yearStart)
+      .first<any>();
+    if (Number(prior?.n ?? 0) > 0) {
+      reasons.push(
+        `This would be your second peak-period booking in ${year} (${peaks[0].name}), so an admin needs to approve it.`,
+      );
+    }
+  }
+
+  // Days already booked this calendar year, plus the days being requested.
+  const rows = await env.DB.prepare(
+    `SELECT start_date, end_date FROM bookings
+     WHERE user_id = ? AND status IN ('confirmed', 'pending') AND start_date <= ? AND end_date >= ?`,
+  )
+    .bind(userId, yearEnd, yearStart)
+    .all<any>();
+
+  let booked = 0;
+  for (const row of rows.results) {
+    const from = row.start_date > yearStart ? row.start_date : yearStart;
+    const to = row.end_date < yearEnd ? row.end_date : yearEnd;
+    booked += daysInclusive(from, to);
+  }
+  const requestedFrom = start > yearStart ? start : yearStart;
+  const requestedTo = end < yearEnd ? end : yearEnd;
+  const requested = daysInclusive(requestedFrom, requestedTo);
+
+  if (booked + requested > settings.yearlyMaxDays) {
+    reasons.push(
+      `This would take you to ${booked + requested} days in ${year}, over the ${settings.yearlyMaxDays}-day yearly allowance, so an admin needs to approve it.`,
+    );
+  }
+
+  return reasons;
 }
 
 /** Small duplicate to avoid an import cycle between settings and rules. */

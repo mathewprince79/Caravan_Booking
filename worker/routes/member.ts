@@ -3,7 +3,8 @@ import type { AppBindings } from '../env';
 import { requireActive, requireUser } from '../lib/auth';
 import { loadSettings } from '../lib/settings';
 import { bookingSummary, bookingToJson, itemToJson, lastUsedFromRow, mapUser } from '../lib/map';
-import { bookingsInWindow, validateBooking } from '../lib/rules';
+import { bookingsInWindow, evaluateApproval, validateBooking } from '../lib/rules';
+import { notifyAdminsOfPendingBooking, sendBookingConfirmation } from '../lib/bookingEmail';
 import { loadMe } from '../lib/me';
 import { storeUpload } from '../lib/storage';
 import { readBody } from '../lib/http';
@@ -180,16 +181,27 @@ memberRoutes.post('/items/:id/bookings', requireActive, async (c) => {
   const problem = await validateBooking(c.env, { item: row, userId: user.id, start, end, today, isAdmin });
   if (problem) return c.json({ error: problem }, 400);
 
+  const reasons = isAdmin ? [] : await evaluateApproval(c.env, { userId: user.id, start, end, settings });
+  const status = reasons.length > 0 ? 'pending' : 'confirmed';
+
   const id = uid();
   await c.env.DB.prepare(
     `INSERT INTO bookings (id, item_id, user_id, start_date, end_date, status, notes, created_by, created_at)
-     VALUES (?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
-    .bind(id, itemId, user.id, start, end, notes, user.id, nowISO())
+    .bind(id, itemId, user.id, start, end, status, notes, user.id, nowISO())
     .run();
 
+  if (status === 'pending') {
+    c.executionCtx.waitUntil(
+      notifyAdminsOfPendingBooking(c.env, id, reasons).catch((error) => console.error('[email:pending]', error)),
+    );
+  } else {
+    c.executionCtx.waitUntil(sendBookingConfirmation(c.env, id).catch((error) => console.error('[email:confirm]', error)));
+  }
+
   const created = await c.env.DB.prepare(`${BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<any>();
-  return c.json({ booking: bookingToJson(created, today) }, 201);
+  return c.json({ booking: bookingToJson(created, today), approval: { required: reasons.length > 0, reasons } }, 201);
 });
 
 memberRoutes.get('/my-bookings', requireActive, async (c) => {

@@ -2,7 +2,16 @@
 
 export type Role = 'admin' | 'user';
 export type UserStatus = 'pending' | 'active' | 'suspended';
-export type BookingStatus = 'confirmed' | 'cancelled';
+export type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
+
+export interface PeakPeriod {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  maxDays: number;
+  createdAt: string;
+}
 export type ReportKind = 'start' | 'end';
 
 export interface User {
@@ -77,6 +86,7 @@ export interface BookingActions {
   needsEndReport: boolean;
   needsAddress: boolean;
   canCancel: boolean;
+  awaitingApproval: boolean;
 }
 
 export interface Booking extends BookingSummary {
@@ -124,6 +134,7 @@ export interface Settings {
   periodDays: number;
   minGapDays: number;
   advanceDays: number;
+  yearlyMaxDays: number;
   requireApproval: boolean;
 }
 
@@ -144,6 +155,16 @@ export interface ItemDetail {
 
 export interface AdminItem extends Item {
   archivedBookingCount: number;
+}
+
+export interface BookingApproval {
+  required: boolean;
+  reasons: string[];
+}
+
+export interface BookingCreateResponse {
+  booking: Booking;
+  approval: BookingApproval;
 }
 
 export interface AdminReportRow {

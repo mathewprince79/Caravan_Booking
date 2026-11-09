@@ -21,6 +21,7 @@ export default function AdminLayout() {
         </NavLink>
         <NavLink to="/admin/items">Items</NavLink>
         <NavLink to="/admin/bookings">Bookings</NavLink>
+        <NavLink to="/admin/peak">Peak periods</NavLink>
         <NavLink to="/admin/reports">Reports</NavLink>
         <NavLink to="/admin/settings">Settings</NavLink>
       </nav>

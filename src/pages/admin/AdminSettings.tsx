@@ -124,6 +124,14 @@ export default function AdminSettings() {
               onChange={(event) => update('advanceDays', Number(event.target.value))}
             />
           </Field>
+          <Field label="Days per member each year" hint="A booking that pushes a member past this needs admin approval.">
+            <input
+              type="number"
+              min={1}
+              value={settings.yearlyMaxDays}
+              onChange={(event) => update('yearlyMaxDays', Number(event.target.value))}
+            />
+          </Field>
         </div>
 
         <label className="checkline">

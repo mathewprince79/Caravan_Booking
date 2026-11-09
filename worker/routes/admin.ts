@@ -4,6 +4,7 @@ import { requireActive, requireAdmin, hashPassword } from '../lib/auth';
 import { loadSettings, saveSettings } from '../lib/settings';
 import { bookingToJson, itemToJson, mapUser, overridesFromRow } from '../lib/map';
 import { runReminderSweep } from '../lib/cron';
+import { sendBookingConfirmation } from '../lib/bookingEmail';
 import { renderEmail, sendEmail } from '../lib/email';
 import { storeUpload } from '../lib/storage';
 import { readBody } from '../lib/http';
@@ -307,7 +308,7 @@ adminRoutes.get('/bookings', async (c) => {
     filters.push('b.user_id = ?');
     params.push(userId);
   }
-  if (status === 'confirmed' || status === 'cancelled') {
+  if (status === 'confirmed' || status === 'pending' || status === 'cancelled') {
     filters.push('b.status = ?');
     params.push(status);
   }
@@ -337,7 +338,7 @@ adminRoutes.post('/bookings', async (c) => {
 
   const conflict = await c.env.DB.prepare(
     `SELECT b.id, b.start_date, b.end_date, u.name AS user_name FROM bookings b JOIN users u ON u.id = b.user_id
-     WHERE b.item_id = ? AND b.status = 'confirmed' AND b.start_date <= ? AND b.end_date >= ? LIMIT 1`,
+     WHERE b.item_id = ? AND b.status IN ('confirmed', 'pending') AND b.start_date <= ? AND b.end_date >= ? LIMIT 1`,
   )
     .bind(itemId, end, start)
     .first<any>();
@@ -356,6 +357,8 @@ adminRoutes.post('/bookings', async (c) => {
     .bind(id, itemId, userId, start, end, notes, admin.id, nowISO())
     .run();
 
+  c.executionCtx.waitUntil(sendBookingConfirmation(c.env, id).catch((error) => console.error('[email:confirm]', error)));
+
   const settings = await loadSettings(c.env);
   const today = todayInTz(settings.timezone);
   const row = await c.env.DB.prepare(`${ADMIN_BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<any>();
@@ -372,15 +375,16 @@ adminRoutes.patch('/bookings/:id', async (c) => {
   const userId = typeof body.userId === 'string' && body.userId ? body.userId : booking.user_id;
   const start = ISO_DATE.test(String(body.startDate ?? '')) ? String(body.startDate) : booking.start_date;
   const end = ISO_DATE.test(String(body.endDate ?? '')) ? String(body.endDate) : booking.end_date;
-  const status = body.status === 'cancelled' || body.status === 'confirmed' ? body.status : booking.status;
+  const status =
+    body.status === 'cancelled' || body.status === 'confirmed' || body.status === 'pending' ? body.status : booking.status;
   const notes = typeof body.notes === 'string' ? body.notes.slice(0, 1000) : booking.notes;
 
   if (end < start) return c.json({ error: 'The end date must be on or after the start date.' }, 400);
 
-  if (status === 'confirmed') {
+  if (status === 'confirmed' || status === 'pending') {
     const conflict = await c.env.DB.prepare(
       `SELECT b.id, b.start_date, b.end_date, u.name AS user_name FROM bookings b JOIN users u ON u.id = b.user_id
-       WHERE b.item_id = ? AND b.id <> ? AND b.status = 'confirmed' AND b.start_date <= ? AND b.end_date >= ? LIMIT 1`,
+       WHERE b.item_id = ? AND b.id <> ? AND b.status IN ('confirmed', 'pending') AND b.start_date <= ? AND b.end_date >= ? LIMIT 1`,
     )
       .bind(itemId, id, end, start)
       .first<any>();
@@ -402,6 +406,44 @@ adminRoutes.patch('/bookings/:id', async (c) => {
   const today = todayInTz(settings.timezone);
   const row = await c.env.DB.prepare(`${ADMIN_BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<any>();
   return c.json({ booking: bookingToJson(row, today) });
+});
+
+adminRoutes.post('/bookings/:id/approve', async (c) => {
+  const id = c.req.param('id');
+  const booking = await c.env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first<any>();
+  if (!booking) return c.json({ error: 'Booking not found.' }, 404);
+  if (booking.status !== 'pending') return c.json({ error: 'That booking is not waiting for approval.' }, 400);
+
+  const conflict = await c.env.DB.prepare(
+    `SELECT b.id, b.start_date, b.end_date, u.name AS user_name FROM bookings b JOIN users u ON u.id = b.user_id
+     WHERE b.item_id = ? AND b.id <> ? AND b.status = 'confirmed' AND b.start_date <= ? AND b.end_date >= ? LIMIT 1`,
+  )
+    .bind(booking.item_id, id, booking.end_date, booking.start_date)
+    .first<any>();
+  if (conflict) {
+    return c.json(
+      { error: `Overlaps ${conflict.user_name}'s booking (${conflict.start_date} to ${conflict.end_date}).` },
+      400,
+    );
+  }
+
+  await c.env.DB.prepare(`UPDATE bookings SET status = 'confirmed', updated_at = ? WHERE id = ?`).bind(nowISO(), id).run();
+  c.executionCtx.waitUntil(sendBookingConfirmation(c.env, id).catch((error) => console.error('[email:approve]', error)));
+
+  const settings = await loadSettings(c.env);
+  const today = todayInTz(settings.timezone);
+  const row = await c.env.DB.prepare(`${ADMIN_BOOKING_SELECT} WHERE b.id = ?`).bind(id).first<any>();
+  return c.json({ booking: bookingToJson(row, today) });
+});
+
+adminRoutes.post('/bookings/:id/reject', async (c) => {
+  const id = c.req.param('id');
+  const booking = await c.env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first<any>();
+  if (!booking) return c.json({ error: 'Booking not found.' }, 404);
+  if (booking.status !== 'pending') return c.json({ error: 'That booking is not waiting for approval.' }, 400);
+
+  await c.env.DB.prepare(`UPDATE bookings SET status = 'cancelled', updated_at = ? WHERE id = ?`).bind(nowISO(), id).run();
+  return c.json({ ok: true });
 });
 
 adminRoutes.delete('/bookings/:id', async (c) => {
@@ -470,6 +512,79 @@ adminRoutes.get('/reports', async (c) => {
       endDate: row.end_date,
     })),
   });
+});
+
+// --------------------------------------------------------- peak periods ----
+
+function peakToJson(row: any) {
+  return {
+    id: row.id,
+    name: row.name,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    maxDays: Number(row.max_days),
+    createdAt: row.created_at,
+  };
+}
+
+adminRoutes.get('/peak-periods', async (c) => {
+  const rows = await c.env.DB.prepare('SELECT * FROM peak_periods ORDER BY start_date').all<any>();
+  return c.json({ periods: rows.results.map(peakToJson) });
+});
+
+adminRoutes.post('/peak-periods', async (c) => {
+  const body = await readBody(c);
+  const name = String(body.name ?? '').trim().slice(0, 80);
+  const startDate = String(body.startDate ?? '');
+  const endDate = String(body.endDate ?? '');
+  const maxDays = nullableInt(body.maxDays);
+
+  if (name.length < 2) return c.json({ error: 'Give the peak period a name.' }, 400);
+  if (!ISO_DATE.test(startDate) || !ISO_DATE.test(endDate)) return c.json({ error: 'Pick the first and last day.' }, 400);
+  if (endDate < startDate) return c.json({ error: 'The last day must be on or after the first day.' }, 400);
+  if (!maxDays || maxDays < 1 || maxDays > 365) {
+    return c.json({ error: 'Set the maximum booking days for this period (1-365).' }, 400);
+  }
+
+  const id = uid();
+  await c.env.DB.prepare(
+    'INSERT INTO peak_periods (id, name, start_date, end_date, max_days, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+  )
+    .bind(id, name, startDate, endDate, maxDays, nowISO())
+    .run();
+
+  const row = await c.env.DB.prepare('SELECT * FROM peak_periods WHERE id = ?').bind(id).first<any>();
+  return c.json({ period: peakToJson(row) }, 201);
+});
+
+adminRoutes.patch('/peak-periods/:id', async (c) => {
+  const id = c.req.param('id');
+  const body = await readBody(c);
+  const existing = await c.env.DB.prepare('SELECT * FROM peak_periods WHERE id = ?').bind(id).first<any>();
+  if (!existing) return c.json({ error: 'Peak period not found.' }, 404);
+
+  const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 80) : existing.name;
+  const startDate = ISO_DATE.test(String(body.startDate ?? '')) ? String(body.startDate) : existing.start_date;
+  const endDate = ISO_DATE.test(String(body.endDate ?? '')) ? String(body.endDate) : existing.end_date;
+  const maxDays = nullableInt(body.maxDays) ?? Number(existing.max_days);
+
+  if (endDate < startDate) return c.json({ error: 'The last day must be on or after the first day.' }, 400);
+  if (maxDays < 1 || maxDays > 365) return c.json({ error: 'Set the maximum booking days for this period (1-365).' }, 400);
+
+  await c.env.DB.prepare('UPDATE peak_periods SET name = ?, start_date = ?, end_date = ?, max_days = ? WHERE id = ?')
+    .bind(name, startDate, endDate, maxDays, id)
+    .run();
+
+  const row = await c.env.DB.prepare('SELECT * FROM peak_periods WHERE id = ?').bind(id).first<any>();
+  return c.json({ period: peakToJson(row) });
+});
+
+adminRoutes.delete('/peak-periods/:id', async (c) => {
+  const id = c.req.param('id');
+  const existing = await c.env.DB.prepare('SELECT id FROM peak_periods WHERE id = ?').bind(id).first();
+  if (!existing) return c.json({ error: 'Peak period not found.' }, 404);
+  await c.env.DB.prepare('DELETE FROM peak_periods WHERE id = ?').bind(id).run();
+  return c.json({ ok: true });
 });
 
 // -------------------------------------------------------------- settings ---

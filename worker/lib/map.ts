@@ -59,7 +59,8 @@ export function bookingSummary(row: any) {
     userName: row.user_name ?? 'Member',
     startDate: row.start_date,
     endDate: row.end_date,
-    status: row.status === 'cancelled' ? ('cancelled' as const) : ('confirmed' as const),
+    status:
+      row.status === 'cancelled' ? ('cancelled' as const) : row.status === 'pending' ? ('pending' as const) : ('confirmed' as const),
   };
 }
 
@@ -73,7 +74,9 @@ export function bookingToJson(row: any, today: string): Booking {
   const hasStartReport = Number(row.has_start ?? 0) > 0;
   const hasEndReport = Number(row.has_end ?? 0) > 0;
   const hasAddress = Number(row.has_address ?? 0) > 0;
-  const confirmed = row.status !== 'cancelled';
+  const status =
+    row.status === 'cancelled' ? ('cancelled' as const) : row.status === 'pending' ? ('pending' as const) : ('confirmed' as const);
+  const confirmed = status === 'confirmed';
 
   return {
     id: row.id,
@@ -83,7 +86,7 @@ export function bookingToJson(row: any, today: string): Booking {
     userName: row.user_name ?? 'Member',
     startDate: row.start_date,
     endDate: row.end_date,
-    status: confirmed ? 'confirmed' : 'cancelled',
+    status,
     notes: row.notes ?? null,
     createdAt: row.created_at,
     hasStartReport,
@@ -93,7 +96,8 @@ export function bookingToJson(row: any, today: string): Booking {
       needsStartReport: confirmed && !hasStartReport && row.end_date >= today,
       needsEndReport: confirmed && !hasEndReport && row.end_date <= today,
       needsAddress: confirmed && !hasAddress && row.end_date <= today,
-      canCancel: confirmed && row.start_date > today,
+      canCancel: status !== 'cancelled' && row.start_date > today,
+      awaitingApproval: status === 'pending',
     },
   };
 }

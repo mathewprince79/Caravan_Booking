@@ -89,5 +89,6 @@ export function StatusChip({ status }: { status: string }) {
 }
 
 export function BookingStatusChip({ status }: { status: string }) {
-  return <span className={`chip chip-${status}`}>{status === 'cancelled' ? 'Cancelled' : 'Confirmed'}</span>;
+  const label = status === 'cancelled' ? 'Cancelled' : status === 'pending' ? 'Awaiting approval' : 'Confirmed';
+  return <span className={`chip chip-${status}`}>{label}</span>;
 }

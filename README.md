@@ -187,6 +187,8 @@ Workers dashboard → your Worker → Settings → Domains & Routes → Add cust
 
 - Dates are calendar days; "today" is decided by the timezone in Admin → Settings (default `UTC` — set it to `Australia/Sydney`, `Europe/London`, etc.).
 - Uploads are capped at 25 MB (12 MB for item photos) and stored in Workers KV, served only to signed-in members. KV is eventually consistent, so a just-uploaded photo can take a minute to appear on other devices.
+- Peak periods live in **Admin → Peak periods**. A booking that touches one may be no longer than that period's maximum days. A member's second peak-period booking in the same calendar year, and any booking that takes them past the yearly day allowance (default 36, set in Settings), are saved as **pending** and need an admin to approve them.
+- A confirmed booking emails the member a confirmation with links straight to the start and end condition report forms. Approving a pending booking sends the same email.
 - Sessions are httpOnly cookies valid for 30 days; deleting a user does not delete their bookings, so delete or reassign those first.
 - The PWA caches the app shell only; calendars and bookings always come from the network.
 # Caravan_Booking

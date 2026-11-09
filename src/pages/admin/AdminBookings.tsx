@@ -120,6 +120,22 @@ export default function AdminBookings() {
     }
   }
 
+  async function decide(booking: Booking, action: 'approve' | 'reject') {
+    setError(null);
+    setNotice(null);
+    try {
+      await api.post(`/api/admin/bookings/${booking.id}/${action}`);
+      setNotice(
+        action === 'approve'
+          ? `Approved ${booking.userName}'s booking and emailed the confirmation.`
+          : `Declined ${booking.userName}'s booking request.`,
+      );
+      await loadBookings();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
   async function remove(booking: Booking) {
     if (!confirm(`Delete ${booking.userName}'s booking of ${booking.itemName}? Reports attached to it are deleted too.`)) return;
     setError(null);
@@ -166,6 +182,7 @@ export default function AdminBookings() {
         <Field label="Status">
           <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
             <option value="">All</option>
+            <option value="pending">Awaiting approval</option>
             <option value="confirmed">Confirmed</option>
             <option value="cancelled">Cancelled</option>
           </select>
@@ -199,7 +216,9 @@ export default function AdminBookings() {
                   </td>
                   <td className="small">{formatRange(booking.startDate, booking.endDate)}</td>
                   <td>
-                    <span className={`chip chip-${booking.status}`}>{booking.status}</span>
+                    <span className={`chip chip-${booking.status}`}>
+                      {booking.status === 'pending' ? 'Awaiting approval' : booking.status}
+                    </span>
                   </td>
                   <td className="tiny muted">
                     start {booking.hasStartReport ? '✓' : '—'} · end {booking.hasEndReport ? '✓' : '—'} · address{' '}
@@ -207,6 +226,24 @@ export default function AdminBookings() {
                   </td>
                   <td>
                     <div className="table-actions">
+                      {booking.status === 'pending' ? (
+                        <>
+                          <button
+                            type="button"
+                            className="button button-primary button-small"
+                            onClick={() => decide(booking, 'approve')}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="button button-danger button-small"
+                            onClick={() => decide(booking, 'reject')}
+                          >
+                            Decline
+                          </button>
+                        </>
+                      ) : null}
                       <button type="button" className="button button-secondary button-small" onClick={() => openEdit(booking)}>
                         Edit
                       </button>

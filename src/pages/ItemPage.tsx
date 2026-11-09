@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { ItemDetail } from '../../shared/types';
+import type { BookingCreateResponse, ItemDetail } from '../../shared/types';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import Calendar from '../components/Calendar';
@@ -27,6 +27,7 @@ export default function ItemPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [approvalNotice, setApprovalNotice] = useState<string[] | null>(null);
   const [selection, setSelection] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
   const [submitting, setSubmitting] = useState(false);
 
@@ -74,8 +75,12 @@ export default function ItemPage() {
     setBookingError(null);
     setSubmitting(true);
     try {
-      await api.post(`/api/items/${id}/bookings`, { startDate: selection.start, endDate: selection.end });
+      const result = await api.post<BookingCreateResponse>(`/api/items/${id}/bookings`, {
+        startDate: selection.start,
+        endDate: selection.end,
+      });
       setSelection({ start: null, end: null });
+      setApprovalNotice(result.approval.required ? result.approval.reasons : null);
       await load();
     } catch (err) {
       setBookingError(errorMessage(err));
@@ -195,6 +200,12 @@ export default function ItemPage() {
                 </div>
 
                 {bookingError ? <Banner kind="error">{bookingError}</Banner> : null}
+                {approvalNotice ? (
+                  <Banner kind="warning">
+                    <strong>Sent for admin approval.</strong> {approvalNotice.join(' ')} You will get a confirmation email with
+                    your condition-report links once an admin approves it.
+                  </Banner>
+                ) : null}
 
                 <form onSubmit={book}>
                   <Field label="First day" htmlFor="startDate">
@@ -240,11 +251,11 @@ export default function ItemPage() {
                 </form>
               </div>
 
-              {detail && detail.myBookings.filter((booking) => booking.status === 'confirmed').length > 0 ? (
+              {detail && detail.myBookings.filter((booking) => booking.status !== 'cancelled').length > 0 ? (
                 <div className="stack">
                   <h2 style={{ fontSize: 17 }}>Your bookings for {item.name}</h2>
                   {detail.myBookings
-                    .filter((booking) => booking.status === 'confirmed')
+                    .filter((booking) => booking.status !== 'cancelled')
                     .map((booking) => (
                       <BookingCard key={booking.id} booking={booking} onChanged={() => void load()} />
                     ))}
