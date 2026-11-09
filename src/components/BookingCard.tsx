@@ -31,9 +31,13 @@ export default function BookingCard({ booking, onChanged, showItem = false, auto
     setError(null);
     setNotice(null);
     const data = new FormData(form);
-    const file = data.get('media');
-    if (!(file instanceof File) || file.size === 0) {
+    const files = data.getAll('media').filter((entry): entry is File => entry instanceof File && entry.size > 0);
+    if (files.length === 0) {
       setError('Choose a photo or video before submitting.');
+      return;
+    }
+    if (files.length > 5) {
+      setError('Attach up to 5 photos or videos per report.');
       return;
     }
     data.set('kind', kind);
@@ -106,7 +110,7 @@ export default function BookingCard({ booking, onChanged, showItem = false, auto
             title="Start condition report"
             done={booking.hasStartReport}
             due={booking.actions.needsStartReport}
-            hint={`Photo or video of ${booking.itemName} before use`}
+            hint={`Photos or videos of ${booking.itemName} before use (up to 5)`}
             busy={busy === 'start'}
             defaultOpen={autoOpenReport === 'start'}
             onSubmit={(form) => uploadReport('start', form)}
@@ -116,7 +120,7 @@ export default function BookingCard({ booking, onChanged, showItem = false, auto
             title="End condition report"
             done={booking.hasEndReport}
             due={booking.actions.needsEndReport}
-            hint={`Photo or video showing how ${booking.itemName} was returned`}
+            hint={`Photos or videos showing how ${booking.itemName} was returned (up to 5)`}
             busy={busy === 'end'}
             defaultOpen={autoOpenReport === 'end'}
             onSubmit={(form) => uploadReport('end', form)}
@@ -231,7 +235,8 @@ function ReportSlot({
             onSubmit(event.currentTarget);
           }}
         >
-          <input type="file" name="media" accept="image/*,video/*" required />
+          <input type="file" name="media" accept="image/*,video/*" multiple required />
+          <span className="tiny muted">Up to 5 photos or videos, 25 MB each. Uploading again replaces the set.</span>
           <input type="text" name="notes" placeholder="Notes (optional)" />
           <div className="row">
             <button type="submit" className="button button-primary button-small" disabled={busy}>

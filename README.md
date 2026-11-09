@@ -194,6 +194,7 @@ Workers dashboard → your Worker → Settings → Domains & Routes → Add cust
 - Admins skip the frequency, gap, advance and outstanding-report rules, but never the double-booking check.
 - A member with an outstanding return report cannot book again until they upload it.
 - Reports open on the booking start day; the return report and parking address open on the last day.
+- Each condition report holds up to 5 photos or videos (25 MB each). Uploading again replaces that report's set, and the replaced files are deleted from KV.
 
 ## Data model
 

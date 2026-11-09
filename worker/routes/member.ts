@@ -13,6 +13,8 @@ import { addDays, addMonths, formatDate, ISO_DATE, startOfMonth, todayInTz } fro
 
 export const memberRoutes = new Hono<AppBindings>();
 
+const MAX_REPORT_FILES = 5;
+
 const BOOKING_SELECT = `
   SELECT b.*, i.name AS item_name, u.name AS user_name,
     (SELECT COUNT(*) FROM reports r WHERE r.booking_id = b.id AND r.kind = 'start') AS has_start,
@@ -252,8 +254,11 @@ memberRoutes.post('/bookings/:id/report', requireActive, async (c) => {
   const kind = String(form.get('kind') ?? '');
   if (kind !== 'start' && kind !== 'end') return c.json({ error: 'Choose the start or end report.' }, 400);
 
-  const file = form.get('media');
-  if (!(file instanceof File)) return c.json({ error: 'Attach a photo or video.' }, 400);
+  const files = form.getAll('media').filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  if (files.length === 0) return c.json({ error: 'Attach at least one photo or video.' }, 400);
+  if (files.length > MAX_REPORT_FILES) {
+    return c.json({ error: `Attach at most ${MAX_REPORT_FILES} photos or videos per report.` }, 400);
+  }
 
   if (user.role !== 'admin') {
     if (kind === 'start' && today < booking.start_date) {
@@ -264,33 +269,43 @@ memberRoutes.post('/bookings/:id/report', requireActive, async (c) => {
     }
   }
 
-  let stored: { key: string; type: string };
+  const stored: { key: string; type: string }[] = [];
   try {
-    stored = await storeUpload(c.env, file, `reports/${booking.id}`);
+    for (const file of files) stored.push(await storeUpload(c.env, file, `reports/${booking.id}`));
   } catch (error) {
+    for (const saved of stored) await c.env.MEDIA.delete(saved.key);
     return c.json({ error: error instanceof Error ? error.message : 'Upload failed.' }, 400);
   }
 
   const notes = form.get('notes') ? String(form.get('notes')).slice(0, 1000) : null;
-  const existing = await c.env.DB.prepare('SELECT id, media_key FROM reports WHERE booking_id = ? AND kind = ?')
+  const existing = await c.env.DB.prepare('SELECT media_key FROM reports WHERE booking_id = ? AND kind = ?')
     .bind(booking.id, kind)
-    .first<any>();
+    .all<{ media_key: string }>();
 
-  if (existing) {
-    await c.env.DB.prepare('UPDATE reports SET media_key = ?, media_type = ?, notes = ?, created_at = ? WHERE id = ?')
-      .bind(stored.key, stored.type, notes, nowISO(), existing.id)
-      .run();
-    await c.env.MEDIA.delete(existing.media_key);
-  } else {
-    await c.env.DB.prepare(
-      `INSERT INTO reports (id, booking_id, item_id, user_id, kind, media_key, media_type, notes, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(uid(), booking.id, booking.item_id, booking.user_id, kind, stored.key, stored.type, notes, nowISO())
-      .run();
-  }
+  const created = nowISO();
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM reports WHERE booking_id = ? AND kind = ?').bind(booking.id, kind),
+    ...stored.map((saved, index) =>
+      c.env.DB.prepare(
+        `INSERT INTO reports (id, booking_id, item_id, user_id, kind, media_key, media_type, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        uid(),
+        booking.id,
+        booking.item_id,
+        booking.user_id,
+        kind,
+        saved.key,
+        saved.type,
+        index === 0 ? notes : null,
+        created,
+      ),
+    ),
+  ]);
 
-  return c.json({ ok: true, mediaKey: stored.key });
+  for (const row of existing.results) await c.env.MEDIA.delete(row.media_key);
+
+  return c.json({ ok: true, mediaKeys: stored.map((saved) => saved.key), mediaKey: stored[0].key });
 });
 
 memberRoutes.post('/bookings/:id/address', requireActive, async (c) => {
