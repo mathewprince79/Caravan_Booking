@@ -1294,17 +1294,12 @@ img.brand-logo-compact {
   margin: 0;
 }
 
-/* The artwork is navy on transparent, so on a dark surface it needs a light plate behind it. */
+/* The image swaps to a light-plated version in dark mode; the text fallback needs its own plate. */
 @media (prefers-color-scheme: dark) {
-  img.brand-logo {
+  .brand-logo-fallback {
     background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 0 0 10px #ffffff;
-  }
-
-  img.brand-logo-compact {
-    border-radius: 8px;
-    box-shadow: 0 0 0 6px #ffffff;
+    padding: 6px 10px;
   }
 }
 

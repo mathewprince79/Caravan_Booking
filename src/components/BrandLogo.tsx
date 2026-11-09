@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 // Versioned so a cached copy can never shadow a new upload.
 const LOGO_SRC = '/brand-logo.png?v=3';
+// Same artwork on a light plate, for dark interfaces and dark-mode phones.
+const LOGO_DARK_SRC = '/brand-logo-dark.png?v=1';
 
 /**
  * Uses public/brand-logo.png. If that image cannot be decoded the vector
@@ -12,12 +14,15 @@ export default function BrandLogo({ compact = false }: { compact?: boolean }) {
 
   if (!imageFailed) {
     return (
-      <img
-        src={LOGO_SRC}
-        alt="BookToUse Club"
-        className={compact ? 'brand-logo brand-logo-compact' : 'brand-logo'}
-        onError={() => setImageFailed(true)}
-      />
+      <picture>
+        <source srcSet={LOGO_DARK_SRC} media="(prefers-color-scheme: dark)" />
+        <img
+          src={LOGO_SRC}
+          alt="BookToUse Club"
+          className={compact ? 'brand-logo brand-logo-compact' : 'brand-logo'}
+          onError={() => setImageFailed(true)}
+        />
+      </picture>
     );
   }
 
