@@ -174,6 +174,32 @@ No email key is set, so booking confirmations and reminders are only logged. Add
           Run the reminder sweep now
         </button>
       </div>
+
+      <div className="card">
+        <div className="card-head">
+          <div>
+            <h2>Sign-in with Google</h2>
+            <p>The Google button only appears on the sign-in and sign-up pages when both Google credentials are set.</p>
+          </div>
+        </div>
+        {config?.googleEnabled ? (
+          <p className="small muted">Google sign-in is configured and the button is showing.</p>
+        ) : (
+          <>
+            <Banner kind="warning">
+              GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are not set on the Worker, so the Google button stays hidden. Add
+              both as Worker secrets to turn it on.
+            </Banner>
+            <p className="small">
+              In Google Cloud Console → APIs &amp; Services → Credentials, create an OAuth client ID of type Web application,
+              then add this authorised redirect URI:
+            </p>
+            <pre className="small" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', margin: '8px 0 0' }}>
+              {`${window.location.origin}/api/auth/google/callback`}
+            </pre>
+          </>
+        )}
+      </div>
     </div>
   );
 }

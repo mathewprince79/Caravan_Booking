@@ -155,6 +155,8 @@ Resend only delivers to your own address until a domain is verified, so use Brev
 
 Without a key, the app still records what it *would* send in the Worker logs — nothing breaks.
 
+A domain on Cloudflare DNS is what makes domain-based sending cheap: verify it once with Resend (Resend can add the SPF/DKIM records to Cloudflare for you) and the free tier covers a whole club. Cloudflare's own Email Sending binding could send with no key at all, but it requires the Workers Paid plan.
+
 ### Cloudflare Workers Builds (git-connected, no extra secrets)
 
 If you connected the repository in the Cloudflare dashboard instead of using GitHub Actions, set:
