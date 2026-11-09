@@ -48,7 +48,7 @@ memberRoutes.get('/config', async (c) => {
     orgName: settings.orgName,
     timezone: settings.timezone,
     googleEnabled: Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET),
-    emailEnabled: Boolean(c.env.RESEND_API_KEY),
+    emailEnabled: Boolean(c.env.RESEND_API_KEY || c.env.BREVO_API_KEY),
     approvalRequired: settings.requireApproval,
   });
 });

@@ -166,7 +166,7 @@ export default function AdminSettings() {
           </p>
         ) : (
           <Banner kind="warning">
-            RESEND_API_KEY is not set, so reminders are logged instead of emailed. Add the key to turn email on.
+No email key is set, so booking confirmations and reminders are only logged. Add BREVO_API_KEY or RESEND_API_KEY, plus EMAIL_FROM, to turn email on.
           </Banner>
         )}
         {sweep ? <Banner kind="info">{sweep}</Banner> : null}

@@ -109,7 +109,8 @@ npm run db:remote
 # 4. Add secrets (never commit these)
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
-npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put BREVO_API_KEY    # free tier, no domain needed
+# ...or instead: npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put EMAIL_FROM
 npx wrangler secret put ADMIN_EMAILS
 
@@ -132,14 +133,27 @@ http://localhost:8787/api/auth/google/callback   (local dev)
 
 The button only appears when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set.
 
-### Email (Resend)
+### Email (Brevo or Resend)
+
+The app sends through whichever key is configured. Brevo is the free option that needs no domain.
+
+**Brevo — free, 300 emails/day, no domain**
+
+1. Create a free Brevo account (no card).
+2. **Senders** → add the address you want to send from (a Gmail address is fine) → enter the 6-digit code Brevo emails you.
+3. **SMTP & API → API Keys** → create a key.
+4. Set `BREVO_API_KEY` and `EMAIL_FROM`, e.g. `Caravan Club <you@gmail.com>`.
+
+**Resend**
 
 1. Create a Resend account and add your domain.
 2. Add the DNS records Resend gives you in Cloudflare DNS.
 3. Create an API key.
-4. Set `RESEND_API_KEY` and `EMAIL_FROM` (e.g. `Caravan Club <bookings@yourdomain.com>`).
+4. Set `RESEND_API_KEY` and `EMAIL_FROM`.
 
-Without a key, the app still records what it *would* send and shows it in the Worker logs — nothing breaks.
+Resend only delivers to your own address until a domain is verified, so use Brevo if you do not own one.
+
+Without a key, the app still records what it *would* send in the Worker logs — nothing breaks.
 
 ### Cloudflare Workers Builds (git-connected, no extra secrets)
 

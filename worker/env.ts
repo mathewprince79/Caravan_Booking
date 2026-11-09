@@ -10,7 +10,10 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   RESEND_API_KEY?: string;
+  BREVO_API_KEY?: string;
   EMAIL_FROM?: string;
+  /** Testing hook: overrides the provider API base. Never set in production. */
+  EMAIL_API_BASE?: string;
   ADMIN_EMAILS?: string;
 }
 

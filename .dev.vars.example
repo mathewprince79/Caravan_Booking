@@ -6,8 +6,10 @@
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Transactional email via Resend (https://resend.com). Optional in local dev:
-# without it, reminder emails are logged instead of sent.
+# Transactional email. Optional in local dev: without a key, emails are logged instead of sent.
+# Brevo (free, no domain): https://app.brevo.com/settings/keys/api
+BREVO_API_KEY=
+# ...or Resend (needs a verified domain): https://resend.com/api-keys
 RESEND_API_KEY=
 EMAIL_FROM="Caravan Club <bookings@yourdomain.com>"
 
