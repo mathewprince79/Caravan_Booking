@@ -1294,6 +1294,20 @@ img.brand-logo-compact {
   margin: 0;
 }
 
+/* The artwork is navy on transparent, so on a dark surface it needs a light plate behind it. */
+@media (prefers-color-scheme: dark) {
+  img.brand-logo {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 0 10px #ffffff;
+  }
+
+  img.brand-logo-compact {
+    border-radius: 8px;
+    box-shadow: 0 0 0 6px #ffffff;
+  }
+}
+
 .brand-logo-fallback {
   display: inline-flex;
   align-items: center;
