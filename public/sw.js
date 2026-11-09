@@ -1,4 +1,4 @@
-const CACHE = 'caravan-booking-v1';
+const CACHE = 'caravan-booking-v2';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -38,7 +38,10 @@ self.addEventListener('fetch', (event) => {
       (hit) =>
         hit ||
         fetch(request).then((response) => {
-          if (response.ok) {
+          // Never cache the SPA fallback: it answers 200 with HTML for missing
+          // files and would be served forever under an image or stylesheet URL.
+          const type = response.headers.get('content-type') || '';
+          if (response.ok && !type.startsWith('text/html')) {
             const copy = response.clone();
             caches.open(CACHE).then((cache) => cache.put(request, copy));
           }

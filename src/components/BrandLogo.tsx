@@ -1,5 +1,8 @@
 import { useState } from 'react';
 
+// Versioned so a cached copy can never shadow a new upload.
+const LOGO_SRC = '/logo.png?v=2';
+
 /**
  * Uses public/logo.png when it is present. Until that file is added the vector
  * recreation below keeps the brand on screen instead of a broken image.
@@ -10,7 +13,7 @@ export default function BrandLogo({ compact = false }: { compact?: boolean }) {
   if (!imageFailed) {
     return (
       <img
-        src="/logo.png"
+        src={LOGO_SRC}
         alt="BookToUse Club"
         className={compact ? 'brand-logo brand-logo-compact' : 'brand-logo'}
         onError={() => setImageFailed(true)}
