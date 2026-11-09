@@ -93,6 +93,7 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
             subject: `Condition report due today – ${row.item_name}`,
             html,
             text,
+            fromName: club,
           });
           summary.startReports++;
           result.ok ? summary.emailsSent++ : summary.emailSkipped++;
@@ -117,6 +118,7 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
             subject: `End-of-booking condition report – ${row.item_name}`,
             html,
             text,
+            fromName: club,
           });
           summary.endReports++;
           result.ok ? summary.emailsSent++ : summary.emailSkipped++;
@@ -140,6 +142,7 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
             subject: `Parking address for ${row.item_name}`,
             html,
             text,
+            fromName: club,
           });
           summary.addressPrompts++;
           result.ok ? summary.emailsSent++ : summary.emailSkipped++;

@@ -6,6 +6,8 @@ export interface EmailMessage {
   subject: string;
   html: string;
   text: string;
+  /** Inbox display name; defaults to the name in EMAIL_FROM. */
+  fromName?: string;
 }
 
 interface Sender {
@@ -82,11 +84,13 @@ export function buildEmailRequest(env: Env, message: EmailMessage): EmailRequest
   const fromRaw = env.EMAIL_FROM || fallback;
   if (!fromRaw) return null;
 
+  const sender = parseSender(fromRaw);
+  const from = message.fromName ? { name: message.fromName, email: sender.email } : sender;
   const base = (env.EMAIL_API_BASE || chosen.provider.base).replace(/\/+$/, '');
   return {
     url: `${base}${chosen.provider.path}`,
     headers: chosen.provider.headers(chosen.key),
-    body: chosen.provider.body(message, parseSender(fromRaw)),
+    body: chosen.provider.body(message, from),
   };
 }
 

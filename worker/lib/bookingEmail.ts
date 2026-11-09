@@ -66,7 +66,12 @@ export interface ConfirmationInput {
 }
 
 /** The confirmation email body: dates plus a link to the before and after report forms. */
-export function buildBookingConfirmation(input: ConfirmationInput): { subject: string; html: string; text: string } {
+export function buildBookingConfirmation(input: ConfirmationInput): {
+  subject: string;
+  html: string;
+  text: string;
+  fromName: string;
+} {
   const { booking, base, orgName } = input;
   const club = clubName(booking.itemName, booking.category, orgName);
   const span = daysInclusive(booking.startDate, booking.endDate);
@@ -97,6 +102,7 @@ export function buildBookingConfirmation(input: ConfirmationInput): { subject: s
     subject: `Booking confirmed: ${booking.itemName} (${formatDate(booking.startDate, 'short')} – ${formatDate(booking.endDate, 'short')})`,
     html,
     text,
+    fromName: club,
   };
 }
 
@@ -154,6 +160,7 @@ export async function notifyAdminsOfPendingBooking(env: Env, bookingId: string, 
       subject: `Approval needed: ${booking.item_name} for ${booking.user_name}`,
       html,
       text,
+      fromName: club,
     });
   }
 }
