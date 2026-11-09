@@ -1,6 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "caravan-booking",
+
+  // Keep the workers.dev host alive so old links keep working.
+  "workers_dev": true,
+
+  // Custom domain: serves the same Worker + SPA.
+  "routes": [{ "pattern": "booktouse.com", "custom_domain": true }],
   "main": "worker/index.ts",
   "compatibility_date": "2025-10-01",
   "observability": { "enabled": true },
@@ -43,6 +49,6 @@
     "DEFAULT_TIMEZONE": "UTC",
     // Set this to your deployed URL (e.g. https://caravan-booking.you.workers.dev)
     // so reminder emails can link straight back to the app.
-    "APP_URL": "https://caravan-booking.mathewprince.workers.dev"
+    "APP_URL": "https://booktouse.com"
   }
 }
