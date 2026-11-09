@@ -2,6 +2,7 @@ import type { Env } from '../env';
 import { addDays, formatDate, todayInTz } from '../../shared/dates';
 import { loadSettings } from './settings';
 import { renderEmail, sendEmail } from './email';
+import { clubName } from './bookingEmail';
 
 export interface SweepSummary {
   date: string;
@@ -50,7 +51,7 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
   };
 
   const rows = await env.DB.prepare(
-    `SELECT b.id, b.item_id, b.start_date, b.end_date, i.name AS item_name,
+    `SELECT b.id, b.item_id, b.start_date, b.end_date, i.name AS item_name, i.category AS item_category,
             u.name AS user_name, u.email AS user_email, u.id AS user_id,
             (SELECT COUNT(*) FROM reports r WHERE r.booking_id = b.id AND r.kind = 'start') AS start_reports,
             (SELECT COUNT(*) FROM reports r WHERE r.booking_id = b.id AND r.kind = 'end') AS end_reports,
@@ -66,6 +67,7 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
 
   for (const row of rows.results) {
     const dateRange = `${formatDate(row.start_date)} – ${formatDate(row.end_date)}`;
+    const club = clubName(row.item_name, row.item_category, settings.orgName);
     const baseRows = [
       { label: 'Item', value: row.item_name },
       { label: 'Dates', value: dateRange },
@@ -77,14 +79,14 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
       if (row.start_date <= today && row.end_date >= today && Number(row.start_reports) === 0) {
         if (await claimReminder(env, row.id, 'start', today)) {
           const { html, text } = renderEmail({
-            orgName: settings.orgName,
+            orgName: club,
             heading: `Condition report due today: ${row.item_name}`,
             intro: `Hi ${row.user_name}, your booking starts today. Please upload a photo or video of ${row.item_name} before you set off so we have a record of its condition.`,
             rows: baseRows,
             body: 'The report is required — you will be asked for it again when the booking ends.',
             ctaLabel: 'Upload the condition report',
             ctaUrl,
-            footer: `Sent by ${settings.orgName}.`,
+            footer: `Sent by ${club}.`,
           });
           const result = await sendEmail(env, {
             to: row.user_email,
@@ -101,14 +103,14 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
       if (row.end_date <= today && Number(row.end_reports) === 0) {
         if (await claimReminder(env, row.id, 'end', today)) {
           const { html, text } = renderEmail({
-            orgName: settings.orgName,
+            orgName: club,
             heading: `End-of-booking report due: ${row.item_name}`,
             intro: `Hi ${row.user_name}, your booking of ${row.item_name} has finished. Please upload a photo or video showing the condition it was returned in, and tell us where it is parked.`,
             rows: baseRows,
             body: 'The report is required before you can book another item.',
             ctaLabel: 'Upload the return report',
             ctaUrl,
-            footer: `Sent by ${settings.orgName}.`,
+            footer: `Sent by ${club}.`,
           });
           const result = await sendEmail(env, {
             to: row.user_email,
@@ -125,13 +127,13 @@ export async function runReminderSweep(env: Env): Promise<SweepSummary> {
       if (row.end_date <= today && Number(row.return_records) === 0) {
         if (await claimReminder(env, row.id, 'address', today)) {
           const { html, text } = renderEmail({
-            orgName: settings.orgName,
+            orgName: club,
             heading: `Where is ${row.item_name} parked?`,
             intro: `Hi ${row.user_name}, thanks for returning ${row.item_name}. Please add the address where it is parked so the next member can find it.`,
             rows: baseRows,
             ctaLabel: 'Add the parking address',
             ctaUrl,
-            footer: `Sent by ${settings.orgName}.`,
+            footer: `Sent by ${club}.`,
           });
           const result = await sendEmail(env, {
             to: row.user_email,

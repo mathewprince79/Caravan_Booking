@@ -13,12 +13,14 @@ interface BookingEmailRow {
   start_date: string;
   end_date: string;
   item_name: string;
+  item_category: string | null;
   user_name: string;
   user_email: string;
 }
 
 const BOOKING_EMAIL_SELECT = `
-  SELECT b.id, b.start_date, b.end_date, i.name AS item_name, u.name AS user_name, u.email AS user_email
+  SELECT b.id, b.start_date, b.end_date, i.name AS item_name, i.category AS item_category,
+         u.name AS user_name, u.email AS user_email
   FROM bookings b
   JOIN items i ON i.id = b.item_id
   JOIN users u ON u.id = b.user_id
@@ -34,6 +36,17 @@ export function reportLink(base: string, bookingId: string, kind: 'start' | 'end
   return `${base}/my-bookings?report=${encodeURIComponent(bookingId)}&kind=${kind}`;
 }
 
+/**
+ * Emails are branded per item: a booking of a trailer reads "Trailer Club".
+ * The item category wins, then the item name, then the club name in Settings.
+ */
+export function clubName(itemName: string, category: string | null | undefined, fallback: string): string {
+  const base = (category ?? '').trim() || (itemName ?? '').trim();
+  if (!base) return fallback;
+  const trimmed = base.slice(0, 50).trim();
+  return /club$/i.test(trimmed) ? trimmed : `${trimmed} Club`;
+}
+
 function linkBlock(href: string | null, label: string): string {
   if (!href) return '';
   return `<p style="margin:6px 0"><a href="${href}" style="color:#0f766e;font-weight:600">${escapeHtml(label)}</a><br><span style="font-size:11px;color:#94a3b8">${escapeHtml(href)}</span></p>`;
@@ -47,6 +60,7 @@ export interface ConfirmationInput {
     startDate: string;
     endDate: string;
     itemName: string;
+    category?: string | null;
     userName: string;
   };
 }
@@ -54,6 +68,7 @@ export interface ConfirmationInput {
 /** The confirmation email body: dates plus a link to the before and after report forms. */
 export function buildBookingConfirmation(input: ConfirmationInput): { subject: string; html: string; text: string } {
   const { booking, base, orgName } = input;
+  const club = clubName(booking.itemName, booking.category, orgName);
   const span = daysInclusive(booking.startDate, booking.endDate);
   const startLink = reportLink(base, booking.id, 'start');
   const endLink = reportLink(base, booking.id, 'end');
@@ -64,7 +79,7 @@ export function buildBookingConfirmation(input: ConfirmationInput): { subject: s
     ${linkBlock(endLink, `End condition report — opens ${formatDate(booking.endDate, 'medium')}`)}`;
 
   const { html, text } = renderEmail({
-    orgName,
+    orgName: club,
     heading: `Booking confirmed: ${booking.itemName}`,
     intro: `Hi ${booking.userName}, your booking of ${booking.itemName} is confirmed.`,
     rows: [
@@ -75,7 +90,7 @@ export function buildBookingConfirmation(input: ConfirmationInput): { subject: s
     body: reportBlock,
     ctaLabel: 'Open my bookings',
     ctaUrl: base ? `${base}/my-bookings` : undefined,
-    footer: `Sent by ${orgName}.`,
+    footer: `Sent by ${club}.`,
   });
 
   return {
@@ -99,6 +114,7 @@ export async function sendBookingConfirmation(env: Env, bookingId: string): Prom
       startDate: booking.start_date,
       endDate: booking.end_date,
       itemName: booking.item_name,
+      category: booking.item_category,
       userName: booking.user_name,
     },
   });
@@ -117,9 +133,11 @@ export async function notifyAdminsOfPendingBooking(env: Env, bookingId: string, 
     email: string;
   }>();
 
+  const club = clubName(booking.item_name, booking.item_category, settings.orgName);
+
   for (const admin of admins.results) {
     const { html, text } = renderEmail({
-      orgName: settings.orgName,
+      orgName: club,
       heading: 'Booking waiting for approval',
       intro: `${booking.user_name} (${booking.user_email}) booked ${booking.item_name} and needs an admin to approve it.`,
       rows: [
@@ -129,7 +147,7 @@ export async function notifyAdminsOfPendingBooking(env: Env, bookingId: string, 
       ],
       ctaLabel: 'Review pending bookings',
       ctaUrl: base ? `${base}/admin/bookings` : undefined,
-      footer: `Sent by ${settings.orgName}.`,
+      footer: `Sent by ${club}.`,
     });
     await sendEmail(env, {
       to: admin.email,
