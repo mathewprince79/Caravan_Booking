@@ -111,7 +111,7 @@ export async function sendEmail(env: Env, message: EmailMessage): Promise<{ ok: 
       console.error('[email:failed]', response.status, await response.text());
       return { ok: false };
     }
-    const receipt = await response.json().catch(() => null);
+    const receipt = (await response.json().catch(() => null)) as { id?: string } | null;
     console.log(`[email:sent] ${message.to} ${receipt && receipt.id ? receipt.id : "no-id"}`);
     return { ok: true };
   } catch (error) {
