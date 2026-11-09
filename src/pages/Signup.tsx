@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Banner, Field, Spinner } from '../components/ui';
+import BrandLogo from '../components/BrandLogo';
 import type { Me } from '../../shared/types';
 
 export default function Signup() {
@@ -35,16 +36,7 @@ export default function Signup() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-brand">
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M3 15h18M5 15V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6" strokeLinecap="round" />
-              <circle cx="7.5" cy="17.5" r="1.7" />
-              <circle cx="16.5" cy="17.5" r="1.7" />
-            </svg>
-          </span>
-          {config?.orgName ?? 'BookToUse Club'}
-        </div>
+        <BrandLogo />
 
         <h1>Create your account</h1>
         <p className="auth-sub">

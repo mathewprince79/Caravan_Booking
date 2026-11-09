@@ -1286,6 +1286,14 @@ table.data tr:last-child td {
   margin: 0 auto 18px;
 }
 
+img.brand-logo-compact {
+  display: block;
+  width: auto;
+  height: 34px;
+  max-width: 170px;
+  margin: 0;
+}
+
 .brand-logo-fallback {
   display: inline-flex;
   align-items: center;

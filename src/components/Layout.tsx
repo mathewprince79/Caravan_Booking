@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import BrandLogo from './BrandLogo';
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;

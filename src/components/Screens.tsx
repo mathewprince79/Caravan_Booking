@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Spinner } from './ui';
+import BrandLogo from './BrandLogo';
 
 export function Splash() {
   return (
@@ -19,6 +20,7 @@ export function PendingScreen() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <BrandLogo />
         <h1>Almost there</h1>
         <p className="auth-sub">
           Thanks{me ? `, ${me.name.split(' ')[0]}` : ''}. Your account is waiting for an admin to approve it. You will get an
@@ -57,6 +59,7 @@ export function SuspendedScreen() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <BrandLogo />
         <h1>Account suspended</h1>
         <p className="auth-sub">
           {me?.name}, your booking access has been suspended. Please contact an admin if you think this is a mistake.
