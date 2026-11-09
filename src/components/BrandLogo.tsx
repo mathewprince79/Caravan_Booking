@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 // Versioned so a cached copy can never shadow a new upload.
-const LOGO_SRC = '/logo.png?v=2';
+const LOGO_SRC = '/brand-logo.png?v=1';
 
 /**
  * Uses public/logo.png when it is present. Until that file is added the vector
