@@ -53,7 +53,7 @@ export default function Login() {
               <circle cx="16.5" cy="17.5" r="1.7" />
             </svg>
           </span>
-          {config?.orgName ?? 'Caravan Club'}
+          {config?.orgName ?? 'BookToUse Club'}
         </div>
 
         <h1>Welcome back</h1>

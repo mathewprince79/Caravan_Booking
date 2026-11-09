@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Banner, Field, Spinner } from '../components/ui';
+import BrandLogo from '../components/BrandLogo';
 import type { Me } from '../../shared/types';
 
 export default function Welcome() {
@@ -33,6 +34,7 @@ export default function Welcome() {
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <BrandLogo />
         <h1>One last thing</h1>
         <p className="auth-sub">
           We keep your phone number on your profile so an admin can reach you about a booking — for example if an item is
@@ -69,7 +71,7 @@ export default function Welcome() {
           >
             Sign out
           </button>
-          <span className="tiny muted">{config?.orgName}</span>
+          <span className="tiny muted">{config?.orgName ?? 'BookToUse Club'}</span>
         </div>
       </div>
     </div>

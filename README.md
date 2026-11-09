@@ -74,7 +74,7 @@ Optional local secrets (copy `.dev.vars.example` to `.dev.vars`):
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 RESEND_API_KEY=...
-EMAIL_FROM="Caravan Club <bookings@yourdomain.com>"
+EMAIL_FROM="BookToUse Club <bookings@booktouse.com>"
 ADMIN_EMAILS=you@example.com
 ```
 
@@ -142,7 +142,7 @@ The app sends through whichever key is configured. Brevo is the free option that
 1. Create a free Brevo account (no card).
 2. **Senders** → add the address you want to send from (a Gmail address is fine) → enter the 6-digit code Brevo emails you.
 3. **SMTP & API → API Keys** → create a key.
-4. Set `BREVO_API_KEY` and `EMAIL_FROM`, e.g. `Caravan Club <you@gmail.com>`.
+4. Set `BREVO_API_KEY` and `EMAIL_FROM`, e.g. `BookToUse Club <you@gmail.com>`.
 
 **Resend**
 

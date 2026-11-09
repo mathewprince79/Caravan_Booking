@@ -20,7 +20,7 @@ export async function loadSettings(env: Env): Promise<Settings> {
   const read = (key: string) => map.get(key) ?? '';
 
   return {
-    orgName: read(SETTING_KEYS.orgName) || env.APP_NAME || 'Caravan Club',
+    orgName: read(SETTING_KEYS.orgName) || env.APP_NAME || 'BookToUse Club',
     timezone: read(SETTING_KEYS.timezone) || env.DEFAULT_TIMEZONE || 'UTC',
     maxDays: clampInt(read(SETTING_KEYS.maxDays), 7, 1, 365),
     maxBookingsPerPeriod: clampInt(read(SETTING_KEYS.maxBookingsPerPeriod), 2, 1, 100),

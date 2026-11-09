@@ -45,7 +45,7 @@
   },
 
   "vars": {
-    "APP_NAME": "Caravan Club",
+    "APP_NAME": "BookToUse Club",
     "DEFAULT_TIMEZONE": "UTC",
     // Set this to your deployed URL (e.g. https://caravan-booking.you.workers.dev)
     // so reminder emails can link straight back to the app.

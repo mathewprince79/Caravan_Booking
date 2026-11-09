@@ -1276,3 +1276,54 @@ table.data tr:last-child td {
     font-size: 22px;
   }
 }
+
+/* Brand logo: real artwork when public/logo.png exists, vector fallback otherwise. */
+.brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto 18px;
+}
+
+.brand-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: none;
+}
+
+.brand-logo-mark {
+  width: 54px;
+  height: 54px;
+  flex: none;
+}
+
+.brand-logo-word {
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.brand-logo-book,
+.brand-logo-com {
+  color: #0b2b5e;
+}
+
+.brand-logo-touse {
+  background: linear-gradient(90deg, #7e22ce, #d61f69 55%, #f97316);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-logo-compact .brand-logo-mark {
+  width: 34px;
+  height: 34px;
+}
+
+.brand-logo-compact .brand-logo-word {
+  font-size: 22px;
+}

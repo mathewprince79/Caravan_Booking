@@ -41,7 +41,7 @@ export default function Layout() {
                 <path d="M9 11h6" strokeLinecap="round" />
               </svg>
             </span>
-            <span className="brand-text">{config?.orgName ?? 'Caravan Club'}</span>
+            <span className="brand-text">{config?.orgName ?? 'BookToUse Club'}</span>
           </Link>
 
           <nav className="main-nav" aria-label="Main">
