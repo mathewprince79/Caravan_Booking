@@ -8,6 +8,7 @@ import Welcome from './pages/Welcome';
 import Dashboard from './pages/Dashboard';
 import ItemPage from './pages/ItemPage';
 import MyBookings from './pages/MyBookings';
+import Money from './pages/Money';
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminItems from './pages/admin/AdminItems';
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/items/:id" element={<ItemPage />} />
             <Route path="/my-bookings" element={<MyBookings />} />
+            <Route path="/money" element={<Money />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminUsers />} />
               <Route path="items" element={<AdminItems />} />

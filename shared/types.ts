@@ -171,3 +171,69 @@ export interface AdminReportRow {
   report: ReportSummary;
   booking: { startDate: string; endDate: string };
 }
+
+// ---- shared money (per-item ledger) -----------------------------------------
+
+export type LedgerKind = 'expense' | 'income';
+
+export interface LedgerShare {
+  userId: string;
+  userName: string;
+  shareCents: number;
+}
+
+export interface LedgerEntry {
+  id: string;
+  itemId: string;
+  kind: LedgerKind;
+  description: string;
+  amountCents: number;
+  paidBy: string;
+  paidByName: string;
+  entryDate: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  shares: LedgerShare[];
+}
+
+export interface LedgerBalance {
+  userId: string;
+  userName: string;
+  netCents: number;
+}
+
+export interface LedgerSettlement {
+  fromUserId: string;
+  fromName: string;
+  toUserId: string;
+  toName: string;
+  amountCents: number;
+}
+
+export interface ItemLedger {
+  itemId: string;
+  itemName: string;
+  members: { id: string; name: string }[];
+  entries: LedgerEntry[];
+  balances: LedgerBalance[];
+  settlements: LedgerSettlement[];
+  myNetCents: number;
+  canContribute: boolean;
+}
+
+/** What one member owes or is owed on one item, after simplification. */
+export interface LedgerObligation {
+  itemId: string;
+  itemName: string;
+  userId: string;
+  userName: string;
+  amountCents: number;
+}
+
+export interface MoneySummary {
+  netCents: number;
+  youOwe: LedgerObligation[];
+  owedToYou: LedgerObligation[];
+  items: ItemLedger[];
+}

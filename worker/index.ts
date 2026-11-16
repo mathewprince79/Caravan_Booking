@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppBindings, Env } from './env';
 import { authRoutes } from './routes/auth';
 import { memberRoutes } from './routes/member';
+import { moneyRoutes } from './routes/money';
 import { adminRoutes } from './routes/admin';
 import { runReminderSweep } from './lib/cron';
 
@@ -11,6 +12,7 @@ app.get('/api/health', (c) => c.json({ ok: true }));
 
 app.route('/api/auth', authRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/money', moneyRoutes);
 app.route('/api', memberRoutes);
 
 app.notFound((c) => {

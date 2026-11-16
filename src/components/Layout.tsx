@@ -42,6 +42,7 @@ export default function Layout() {
               Items
             </NavLink>
             <NavLink to="/my-bookings">My bookings</NavLink>
+            <NavLink to="/money">Money</NavLink>
             {me?.role === 'admin' ? <NavLink to="/admin">Admin</NavLink> : null}
           </nav>
 

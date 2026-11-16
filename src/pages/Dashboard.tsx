@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Booking, Item } from '../../shared/types';
+import type { Booking, Item, MoneySummary } from '../../shared/types';
+import { formatMoney } from '../../shared/money';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Banner, EmptyState, Spinner } from '../components/ui';
@@ -18,18 +19,21 @@ export default function Dashboard() {
   const { me } = useAuth();
   const [items, setItems] = useState<Item[] | null>(null);
   const [pendingActions, setPendingActions] = useState<Booking[]>([]);
+  const [money, setMoney] = useState<MoneySummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [itemsResponse, mine] = await Promise.all([
+        const [itemsResponse, mine, moneyResponse] = await Promise.all([
           api.get<ItemsResponse>('/api/items'),
           api.get<{ bookings: Booking[] }>('/api/my-bookings'),
+          api.get<MoneySummary>('/api/money'),
         ]);
         if (!alive) return;
         setItems(itemsResponse.items);
+        setMoney(moneyResponse);
         setPendingActions(
           mine.bookings.filter(
             (booking) =>
@@ -73,6 +77,29 @@ export default function Dashboard() {
             </div>
             <Link className="button button-primary button-small" to="/my-bookings">
               Open
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {money && (money.youOwe.length > 0 || money.owedToYou.length > 0) ? (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="row-between">
+            <div>
+              <h2 style={{ fontSize: 16 }}>
+                {money.netCents < 0 ? `You owe ${formatMoney(-money.netCents)}` : `You are owed ${formatMoney(money.netCents)}`}
+              </h2>
+              <p className="small muted">
+                {[
+                  ...money.youOwe.map((row) => `${formatMoney(row.amountCents)} to ${row.userName} · ${row.itemName}`),
+                  ...money.owedToYou.map((row) => `${formatMoney(row.amountCents)} from ${row.userName} · ${row.itemName}`),
+                ]
+                  .slice(0, 3)
+                  .join('  ·  ')}
+              </p>
+            </div>
+            <Link className="button button-secondary button-small" to="/money">
+              Shared money
             </Link>
           </div>
         </div>

@@ -1277,6 +1277,121 @@ table.data tr:last-child td {
   }
 }
 
+/* ------------------------------------------------------------- money ----- */
+
+.money-section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.money-form {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface-2);
+  margin-bottom: 18px;
+}
+
+.money-form .field:last-of-type {
+  margin-bottom: 10px;
+}
+
+.split-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.split-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.split-option input {
+  width: auto;
+  margin: 0;
+}
+
+.money-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+.money-entries {
+  display: grid;
+  gap: 8px;
+}
+
+.money-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.money-row-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.money-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.money-badge-expense {
+  background: var(--booked-bg);
+  color: var(--booked-ink);
+}
+
+.money-badge-income {
+  background: var(--free-bg);
+  color: var(--free-ink);
+}
+
+.money-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.money-amount-owe {
+  color: var(--booked-ink);
+}
+
+.money-amount-credit {
+  color: var(--free-ink);
+}
+
+@media (max-width: 900px) {
+  .money-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Brand logo: real artwork when public/logo.png exists, vector fallback otherwise. */
 .brand-logo {
   display: block;
