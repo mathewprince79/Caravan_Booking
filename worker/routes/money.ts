@@ -39,8 +39,8 @@ async function loadMembers(env: AppBindings['Bindings'], itemId: string) {
   return rows.results;
 }
 
+/** Membership only: the money side is never shown to anyone outside the item group. */
 async function canSeeItem(env: AppBindings['Bindings'], user: User, itemId: string): Promise<boolean> {
-  if (user.role === 'admin') return true;
   const row = await env.DB.prepare('SELECT 1 AS ok FROM item_access WHERE item_id = ? AND user_id = ?')
     .bind(itemId, user.id)
     .first();
@@ -141,12 +141,6 @@ function obligationsFor(user: User, ledger: ItemLedger): { youOwe: LedgerObligat
 }
 
 async function visibleItemIds(env: AppBindings['Bindings'], user: User): Promise<string[]> {
-  if (user.role === 'admin') {
-    const rows = await env.DB.prepare('SELECT id FROM items WHERE active = 1 ORDER BY name LIMIT ?')
-      .bind(MAX_LEDGER_ITEMS)
-      .all<{ id: string }>();
-    return rows.results.map((row) => row.id);
-  }
   const rows = await env.DB.prepare(
     `SELECT i.id FROM item_access a JOIN items i ON i.id = a.item_id
      WHERE a.user_id = ? AND i.active = 1 ORDER BY i.name LIMIT ?`,

@@ -237,12 +237,6 @@ function LedgerCard({
         </span>
       </div>
 
-      {!ledger.canContribute ? (
-        <Banner kind="info">
-          You can see this ledger because you are an admin, but only people in the item group can add expenses or income.
-        </Banner>
-      ) : null}
-
       {ledger.canContribute ? (
         <form onSubmit={submit} className="money-form">
           <div className="form-grid">
