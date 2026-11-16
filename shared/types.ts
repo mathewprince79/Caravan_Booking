@@ -174,7 +174,7 @@ export interface AdminReportRow {
 
 // ---- shared money (per-item ledger) -----------------------------------------
 
-export type LedgerKind = 'expense' | 'income';
+export type LedgerKind = 'expense' | 'income' | 'settlement';
 
 export interface LedgerShare {
   userId: string;

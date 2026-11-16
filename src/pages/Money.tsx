@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ItemLedger, LedgerKind, MoneySummary } from '../../shared/types';
+import type { ItemLedger, LedgerKind, LedgerSettlement, MoneySummary } from '../../shared/types';
 import { api, errorMessage } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { Banner, Field, Spinner } from '../components/ui';
+import { Banner, Field, Modal, Spinner } from '../components/ui';
 import { formatDate, todayInTz } from '../../shared/dates';
 import { formatMoney, parseAmountToCents } from '../../shared/money';
 
@@ -157,6 +157,12 @@ function LedgerCard({
   const [participants, setParticipants] = useState<string[]>(members.map((member) => member.id));
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [settleFor, setSettleFor] = useState<LedgerSettlement | null>(null);
+  const [settleAmount, setSettleAmount] = useState('');
+  const [settleDate, setSettleDate] = useState(() => todayInTz());
+  const [settleNote, setSettleNote] = useState('');
+  const [settleError, setSettleError] = useState<string | null>(null);
+  const [settleSaving, setSettleSaving] = useState(false);
 
   useEffect(() => {
     setParticipants(members.map((member) => member.id));
@@ -212,6 +218,43 @@ function LedgerCard({
       setFormError(errorMessage(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  function openSettle(settlement: LedgerSettlement) {
+    setSettleFor(settlement);
+    setSettleAmount((settlement.amountCents / 100).toFixed(2));
+    setSettleDate(todayInTz());
+    setSettleNote('');
+    setSettleError(null);
+  }
+
+  async function recordPayment(event: React.FormEvent) {
+    event.preventDefault();
+    if (!settleFor) return;
+    const cents = parseAmountToCents(settleAmount);
+    if (!cents) {
+      setSettleError('Enter an amount greater than zero.');
+      return;
+    }
+
+    setSettleSaving(true);
+    try {
+      await api.post(`/api/money/items/${ledger.itemId}`, {
+        kind: 'settlement',
+        amountCents: cents,
+        entryDate: settleDate,
+        paidBy: settleFor.fromUserId,
+        toUserId: settleFor.toUserId,
+        description: settleNote.trim(),
+      });
+      setSettleFor(null);
+      onError(null);
+      onChanged();
+    } catch (err) {
+      setSettleError(errorMessage(err));
+    } finally {
+      setSettleSaving(false);
     }
   }
 
@@ -348,19 +391,24 @@ function LedgerCard({
                   <div className="money-row" key={entry.id}>
                     <div className="money-row-main">
                       <span className={`money-badge money-badge-${entry.kind}`}>
-                        {entry.kind === 'income' ? 'Income' : 'Expense'}
+                        {entry.kind === 'income' ? 'Income' : entry.kind === 'settlement' ? 'Paid' : 'Expense'}
                       </span>
                       <div>
                         <strong>{entry.description}</strong>
                         <p className="tiny muted">
                           {formatDate(entry.entryDate, 'short')} ·{' '}
-                          {entry.kind === 'income' ? 'received by' : 'paid by'} {entry.paidByName} · split{' '}
-                          {entry.shares.length} way{entry.shares.length === 1 ? '' : 's'}
+                          {entry.kind === 'settlement'
+                            ? `${entry.paidByName} paid ${entry.shares[0]?.userName ?? 'a member'}`
+                            : `${entry.kind === 'income' ? 'received by' : 'paid by'} ${entry.paidByName} · split ${entry.shares.length} way${entry.shares.length === 1 ? '' : 's'}`}
                         </p>
                       </div>
                     </div>
                     <div className="row" style={{ gap: 8 }}>
-                      <span className={`money-amount money-amount-${entry.kind === 'income' ? 'credit' : 'owe'}`}>
+                      <span
+                        className={`money-amount ${
+                          entry.kind === 'income' ? 'money-amount-credit' : entry.kind === 'expense' ? 'money-amount-owe' : ''
+                        }`}
+                      >
                         {formatMoney(entry.amountCents)}
                       </span>
                       {canDelete ? (
@@ -395,7 +443,18 @@ function LedgerCard({
                     {settlement.fromUserId === meId ? '' : 's'}{' '}
                     <strong>{settlement.toUserId === meId ? 'you' : settlement.toName}</strong>
                   </span>
-                  <span className="money-amount">{formatMoney(settlement.amountCents)}</span>
+                  <div className="row" style={{ gap: 8 }}>
+                    <span className="money-amount">{formatMoney(settlement.amountCents)}</span>
+                    {ledger.canContribute ? (
+                      <button
+                        type="button"
+                        className="button button-secondary button-small"
+                        onClick={() => openSettle(settlement)}
+                      >
+                        Record payment
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -431,6 +490,59 @@ function LedgerCard({
           </div>
         </div>
       </div>
+
+      {settleFor ? (
+        <Modal title="Record a payment" onClose={() => setSettleFor(null)}>
+          <form onSubmit={recordPayment}>
+            <p className="small muted" style={{ marginBottom: 14 }}>
+              {settleFor.fromName} pays {settleFor.toName}. Recording it here lowers what they owe straight away.
+            </p>
+
+            <div className="form-grid">
+              <Field
+                label="Amount paid"
+                htmlFor={`settle-amount-${ledger.itemId}`}
+                hint={`Outstanding: ${formatMoney(settleFor.amountCents)}`}
+              >
+                <input
+                  id={`settle-amount-${ledger.itemId}`}
+                  inputMode="decimal"
+                  value={settleAmount}
+                  onChange={(event) => setSettleAmount(event.target.value)}
+                />
+              </Field>
+              <Field label="Date" htmlFor={`settle-date-${ledger.itemId}`}>
+                <input
+                  id={`settle-date-${ledger.itemId}`}
+                  type="date"
+                  value={settleDate}
+                  onChange={(event) => setSettleDate(event.target.value || todayInTz())}
+                />
+              </Field>
+            </div>
+
+            <Field label="Note" htmlFor={`settle-note-${ledger.itemId}`} hint="Optional — e.g. bank transfer">
+              <input
+                id={`settle-note-${ledger.itemId}`}
+                value={settleNote}
+                maxLength={120}
+                onChange={(event) => setSettleNote(event.target.value)}
+              />
+            </Field>
+
+            {settleError ? <Banner kind="error">{settleError}</Banner> : null}
+
+            <div className="form-actions">
+              <button type="submit" className="button button-primary button-small" disabled={settleSaving}>
+                {settleSaving ? 'Recording…' : 'Mark as paid'}
+              </button>
+              <button type="button" className="button button-ghost button-small" onClick={() => setSettleFor(null)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
     </div>
   );
 }

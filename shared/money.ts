@@ -13,7 +13,8 @@ export interface ShareLike {
 
 export interface EntryLike {
   amountCents: number;
-  kind: 'expense' | 'income';
+  /** A settlement is a payment from one member to another, held as a single share. */
+  kind: 'expense' | 'income' | 'settlement';
   paidBy: string;
   shares: ShareLike[];
 }
@@ -60,6 +61,9 @@ export function computeBalances(members: MemberLike[], entries: EntryLike[]): Ba
       add(entry.paidBy, -entry.amountCents);
       for (const share of entry.shares) add(share.userId, share.shareCents);
     } else {
+      // Expenses credit whoever paid and charge the people it was split across.
+      // A settlement is the same shape: the payer's debt shrinks, the recipient's
+      // credit shrinks by exactly what was handed over.
       add(entry.paidBy, entry.amountCents);
       for (const share of entry.shares) add(share.userId, -share.shareCents);
     }

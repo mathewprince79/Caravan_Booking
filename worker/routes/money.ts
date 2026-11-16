@@ -5,7 +5,7 @@ import { readBody } from '../lib/http';
 import { nowISO, uid } from '../lib/util';
 import { loadSettings } from '../lib/settings';
 import { ISO_DATE, todayInTz } from '../../shared/dates';
-import { computeBalances, simplifyDebts, splitCents } from '../../shared/money';
+import { computeBalances, formatMoney, simplifyDebts, splitCents } from '../../shared/money';
 import type {
   ItemLedger,
   LedgerBalance,
@@ -84,7 +84,7 @@ async function loadLedger(env: AppBindings['Bindings'], user: User, itemId: stri
   const mapped: LedgerEntry[] = entries.results.map((row) => ({
     id: row.id,
     itemId: row.item_id,
-    kind: row.kind === 'income' ? 'income' : 'expense',
+    kind: row.kind === 'income' ? 'income' : row.kind === 'settlement' ? 'settlement' : 'expense',
     description: row.description,
     amountCents: Number(row.amount_cents),
     paidBy: row.paid_by,
@@ -208,11 +208,20 @@ moneyRoutes.post('/items/:id', requireActive, async (c) => {
   }
 
   const body = await readBody(c);
-  const kind = body.kind === 'income' ? 'income' : body.kind === 'expense' ? 'expense' : null;
-  if (!kind) return c.json({ error: 'Choose whether this is an expense or income.' }, 400);
+  const kind =
+    body.kind === 'income'
+      ? 'income'
+      : body.kind === 'settlement'
+        ? 'settlement'
+        : body.kind === 'expense'
+          ? 'expense'
+          : null;
+  if (!kind) return c.json({ error: 'Choose whether this is an expense, income or payment.' }, 400);
 
-  const description = String(body.description ?? '').trim().slice(0, 120);
-  if (description.length < 2) return c.json({ error: 'Describe what the money was for.' }, 400);
+  let description = String(body.description ?? '').trim().slice(0, 120);
+  if (kind !== 'settlement' && description.length < 2) {
+    return c.json({ error: 'Describe what the money was for.' }, 400);
+  }
 
   const amountCents = Math.round(Number(body.amountCents));
   if (!Number.isFinite(amountCents) || amountCents <= 0) {
@@ -231,15 +240,38 @@ moneyRoutes.post('/items/:id', requireActive, async (c) => {
     return c.json({ error: 'Whoever paid must be a member of this item group.' }, 400);
   }
 
-  const requested: string[] = Array.isArray(body.participantIds)
-    ? body.participantIds.filter((value: unknown): value is string => typeof value === 'string')
-    : [];
-  const participantIds = [...new Set(requested)].filter((id) => memberOf(members, id));
-  if (participantIds.length === 0) {
-    return c.json({ error: 'Choose at least one person to share this with.' }, 400);
-  }
+  let shares: { userId: string; shareCents: number }[];
 
-  const shares = splitCents(amountCents, participantIds);
+  if (kind === 'settlement') {
+    const toUserId = String(body.toUserId ?? '');
+    const recipient = members.find((member) => member.id === toUserId);
+    if (!recipient) return c.json({ error: 'Choose the member who was paid.' }, 400);
+    if (recipient.id === paidBy) return c.json({ error: 'A payment needs two different people.' }, 400);
+
+    // Only what is genuinely outstanding may be settled, so a typo cannot fling
+    // the balances the other way.
+    const current = await loadLedger(c.env, user, itemId);
+    const owing = current?.settlements.find((row) => row.fromUserId === paidBy && row.toUserId === recipient.id);
+    const payerName = members.find((member) => member.id === paidBy)?.name ?? 'That member';
+    if (!owing) {
+      return c.json({ error: `${payerName} does not owe ${recipient.name} anything at the moment.` }, 400);
+    }
+    if (amountCents > owing.amountCents) {
+      return c.json({ error: `Only ${formatMoney(owing.amountCents)} is outstanding between those two.` }, 400);
+    }
+
+    description = description || `Paid ${recipient.name}`;
+    shares = [{ userId: recipient.id, shareCents: amountCents }];
+  } else {
+    const requested: string[] = Array.isArray(body.participantIds)
+      ? body.participantIds.filter((value: unknown): value is string => typeof value === 'string')
+      : [];
+    const participantIds = [...new Set(requested)].filter((id) => memberOf(members, id));
+    if (participantIds.length === 0) {
+      return c.json({ error: 'Choose at least one person to share this with.' }, 400);
+    }
+    shares = splitCents(amountCents, participantIds);
+  }
   const id = uid();
   const created = nowISO();
 
