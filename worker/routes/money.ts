@@ -248,6 +248,13 @@ moneyRoutes.post('/items/:id', requireActive, async (c) => {
     if (!recipient) return c.json({ error: 'Choose the member who was paid.' }, 400);
     if (recipient.id === paidBy) return c.json({ error: 'A payment needs two different people.' }, 400);
 
+    // Only the two people involved may settle it: the debtor marking what they
+    // paid, or the creditor confirming they received it. Everyone else sees the
+    // ledger but cannot move money that is not theirs.
+    if (user.id !== paidBy && user.id !== recipient.id) {
+      return c.json({ error: 'You can only record payments that you are part of.' }, 403);
+    }
+
     // Only what is genuinely outstanding may be settled, so a typo cannot fling
     // the balances the other way.
     const current = await loadLedger(c.env, user, itemId);

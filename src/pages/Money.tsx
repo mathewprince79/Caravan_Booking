@@ -445,13 +445,14 @@ function LedgerCard({
                   </span>
                   <div className="row" style={{ gap: 8 }}>
                     <span className="money-amount">{formatMoney(settlement.amountCents)}</span>
-                    {ledger.canContribute ? (
+                    {ledger.canContribute &&
+                    (settlement.fromUserId === meId || settlement.toUserId === meId) ? (
                       <button
                         type="button"
                         className="button button-secondary button-small"
                         onClick={() => openSettle(settlement)}
                       >
-                        Record payment
+                        {settlement.toUserId === meId ? 'Mark received' : 'Mark as paid'}
                       </button>
                     ) : null}
                   </div>
@@ -495,7 +496,9 @@ function LedgerCard({
         <Modal title="Record a payment" onClose={() => setSettleFor(null)}>
           <form onSubmit={recordPayment}>
             <p className="small muted" style={{ marginBottom: 14 }}>
-              {settleFor.fromName} pays {settleFor.toName}. Recording it here lowers what they owe straight away.
+              {settleFor.toUserId === meId
+                ? `${settleFor.fromName} paid you. Recording it clears what they owe.`
+                : `You paid ${settleFor.toName}. Recording it lowers what you owe.`}
             </p>
 
             <div className="form-grid">
