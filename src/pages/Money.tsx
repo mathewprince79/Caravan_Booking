@@ -39,7 +39,7 @@ export default function Money() {
   const hasObligations = Boolean(summary && (summary.youOwe.length > 0 || summary.owedToYou.length > 0));
 
   return (
-    <div className="page">
+    <div className="page money-page">
       <div className="page-head">
         <div>
           <h1>Shared money</h1>

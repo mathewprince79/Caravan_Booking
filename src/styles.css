@@ -1383,6 +1383,12 @@ table.data tr:last-child td {
   white-space: nowrap;
 }
 
+/* Alternate row shading so long ledgers stay readable across the line. */
+.money-page .money-row:nth-child(even),
+.money-page .list-row:nth-child(even) {
+  background: var(--surface-2);
+}
+
 .money-amount-owe {
   color: var(--booked-ink);
 }
