@@ -109,7 +109,8 @@ export default function Dashboard() {
 
       {items && items.length === 0 ? (
         <EmptyState title="No items are available to you yet">
-          An admin needs to approve your account and give you access to at least one item. You can check back later.
+          You need access to at least one item before you can book. An admin can grant it in Admin → Members, and if you are an
+          admin you can tick the items on your own account there.
         </EmptyState>
       ) : null}
 

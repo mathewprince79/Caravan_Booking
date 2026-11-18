@@ -42,11 +42,10 @@ export default function AdminUsers() {
     }
 
     if (accessFilter === 'all') return true;
-    // Admins can book every item, which is what the table shows them as.
-    const seesEverything = user.role === 'admin';
-    if (accessFilter === 'any') return seesEverything || user.itemIds.length > 0;
-    if (accessFilter === 'none') return !seesEverything && user.itemIds.length === 0;
-    return seesEverything || user.itemIds.includes(accessFilter.slice('item:'.length));
+    // Grants decide this for everyone, admins included.
+    if (accessFilter === 'any') return user.itemIds.length > 0;
+    if (accessFilter === 'none') return user.itemIds.length === 0;
+    return user.itemIds.includes(accessFilter.slice('item:'.length));
   });
 
   async function update(user: AdminUser, body: Record<string, unknown>, message: string) {
@@ -193,9 +192,7 @@ export default function AdminUsers() {
                     <span className={`chip${user.role === 'admin' ? ' chip-confirmed' : ''}`}>{user.role}</span>
                   </td>
                   <td className="small">
-                    {user.role === 'admin' ? (
-                      <span className="muted">All items</span>
-                    ) : user.itemIds.length === 0 ? (
+                    {user.itemIds.length === 0 ? (
                       <span className="muted">None</span>
                     ) : (
                       user.itemIds.map((id) => itemName.get(id) ?? 'Item').join(', ')
@@ -262,7 +259,7 @@ export default function AdminUsers() {
       {accessUser ? (
         <Modal title={`Item access — ${accessUser.name}`} onClose={() => setAccessUser(null)}>
           <p className="small muted" style={{ marginBottom: 12 }}>
-            Tick the items this member can book. Admins can book everything, so access is not needed for them.
+            Tick the items this member can book. This applies to admins too: an admin only sees the items they are given, so an admin can edit their own access here.
           </p>
           <div className="access-list">
             {items.map((item) => (

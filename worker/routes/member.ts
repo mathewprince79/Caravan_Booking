@@ -85,11 +85,12 @@ memberRoutes.get('/items', requireActive, async (c) => {
   const allowed = new Set(access.results.map((row) => row.item_id));
   const currentByItem = new Map(current.results.map((row) => [row.item_id, bookingSummary(row)]));
   const lastByItem = new Map(last.results.map((row) => [row.item_id, lastUsedFromRow(row)]));
-  const isAdmin = user.role === 'admin';
 
+  // Access is granted per member, admins included: an admin only sees the items
+  // they have been given, exactly like everyone else.
   const list = items.results.map((row) => {
     const item = itemToJson(row, settings);
-    item.canBook = isAdmin || allowed.has(row.id);
+    item.canBook = allowed.has(row.id);
     item.currentBooking = currentByItem.get(row.id) ?? null;
     item.lastUsed = lastByItem.get(row.id) ?? null;
     return item;
@@ -97,7 +98,7 @@ memberRoutes.get('/items', requireActive, async (c) => {
 
   return c.json({
     today,
-    items: isAdmin ? list : list.filter((item) => item.canBook),
+    items: list.filter((item) => item.canBook),
     allItemsCount: items.results.length,
   });
 });
@@ -111,10 +112,9 @@ memberRoutes.get('/items/:id', requireActive, async (c) => {
   const row = await c.env.DB.prepare('SELECT * FROM items WHERE id = ?').bind(id).first<any>();
   if (!row) return c.json({ error: 'That item could not be found.' }, 404);
 
-  const isAdmin = user.role === 'admin';
-  const granted = isAdmin
-    ? true
-    : Boolean(await c.env.DB.prepare('SELECT 1 AS ok FROM item_access WHERE item_id = ? AND user_id = ?').bind(id, user.id).first());
+  const granted = Boolean(
+    await c.env.DB.prepare('SELECT 1 AS ok FROM item_access WHERE item_id = ? AND user_id = ?').bind(id, user.id).first(),
+  );
   if (!granted) {
     return c.json({ error: 'You do not have access to this item yet. Ask an admin to grant it.' }, 403);
   }
@@ -171,12 +171,10 @@ memberRoutes.post('/items/:id/bookings', requireActive, async (c) => {
   if (!row) return c.json({ error: 'That item could not be found.' }, 404);
 
   const isAdmin = user.role === 'admin';
-  if (!isAdmin) {
-    const granted = await c.env.DB.prepare('SELECT 1 AS ok FROM item_access WHERE item_id = ? AND user_id = ?')
-      .bind(itemId, user.id)
-      .first();
-    if (!granted) return c.json({ error: 'You do not have access to this item yet.' }, 403);
-  }
+  const granted = await c.env.DB.prepare('SELECT 1 AS ok FROM item_access WHERE item_id = ? AND user_id = ?')
+    .bind(itemId, user.id)
+    .first();
+  if (!granted) return c.json({ error: 'You do not have access to this item yet.' }, 403);
 
   const settings = await loadSettings(c.env);
   const today = todayInTz(settings.timezone);
