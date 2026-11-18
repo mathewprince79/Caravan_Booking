@@ -12,6 +12,8 @@ export default function AdminUsers() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  // 'all' | 'any' | 'none' | `item:<id>`
+  const [accessFilter, setAccessFilter] = useState('all');
 
   const [accessUser, setAccessUser] = useState<AdminUser | null>(null);
   const [accessIds, setAccessIds] = useState<string[]>([]);
@@ -35,8 +37,16 @@ export default function AdminUsers() {
 
   const filtered = (users ?? []).filter((user) => {
     const query = search.trim().toLowerCase();
-    if (!query) return true;
-    return [user.name, user.email, user.phone ?? ''].some((value) => value.toLowerCase().includes(query));
+    if (query && ![user.name, user.email, user.phone ?? ''].some((value) => value.toLowerCase().includes(query))) {
+      return false;
+    }
+
+    if (accessFilter === 'all') return true;
+    // Admins can book every item, which is what the table shows them as.
+    const seesEverything = user.role === 'admin';
+    if (accessFilter === 'any') return seesEverything || user.itemIds.length > 0;
+    if (accessFilter === 'none') return !seesEverything && user.itemIds.length === 0;
+    return seesEverything || user.itemIds.includes(accessFilter.slice('item:'.length));
   });
 
   async function update(user: AdminUser, body: Record<string, unknown>, message: string) {
@@ -116,7 +126,32 @@ export default function AdminUsers() {
         <Field label="Search members">
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, email or phone" />
         </Field>
-        <span className="small muted">{filtered.length} member(s)</span>
+        <Field label="Item access">
+          <select value={accessFilter} onChange={(event) => setAccessFilter(event.target.value)}>
+            <option value="all">All members</option>
+            <option value="any">Has any item access</option>
+            <option value="none">No item access</option>
+            {items.map((item) => (
+              <option key={item.id} value={`item:${item.id}`}>
+                {item.name}
+                {item.active ? '' : ' (retired)'}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <span className="small muted">{filtered.length} of {users?.length ?? 0} member(s)</span>
+        {accessFilter !== 'all' || search ? (
+          <button
+            type="button"
+            className="button button-ghost button-small"
+            onClick={() => {
+              setAccessFilter('all');
+              setSearch('');
+            }}
+          >
+            Clear filters
+          </button>
+        ) : null}
       </div>
 
       {!users ? <Spinner label="Loading members" /> : null}
@@ -135,6 +170,13 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="small muted">
+                    No members match those filters.
+                  </td>
+                </tr>
+              ) : null}
               {filtered.map((user) => (
                 <tr key={user.id}>
                   <td>
